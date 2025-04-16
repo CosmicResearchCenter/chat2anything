@@ -94,7 +94,7 @@ class AdminService:
         for message in messages:
             message_list.append(Message(
                 assistant=message.answer,
-                message_time=message.timeStamp,
+                message_time=str(message.timeStamp),  # 将 datetime 转换为字符串
                 user=message.query
             ))
         return message_list
