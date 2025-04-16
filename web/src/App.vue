@@ -1,6 +1,39 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import { ChatDotRound, Folder, Setting, User } from '@element-plus/icons-vue'
+import { ref, onMounted } from 'vue'
+
+// 管理员状态响应式变量
+const isAdmin = ref(false)
+
+// 检查用户是否为管理员
+async function checkIsAdmin() {
+  const token = localStorage.getItem('token')
+  if (!token) {
+    isAdmin.value = false
+    return
+  }
+  
+  const baseURL = import.meta.env.VITE_APP_BASE_URL
+  try {
+    const response = await fetch(`${baseURL}/v1/api/mark/admin/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    isAdmin.value = response.ok
+  } catch (error) {
+    console.error('Error checking admin status:', error)
+    isAdmin.value = false
+  }
+}
+
+// 组件挂载时检查管理员状态
+onMounted(async () => {
+  await checkIsAdmin()
+})
 </script>
 
 <template>
@@ -25,7 +58,7 @@ import { ChatDotRound, Folder, Setting, User } from '@element-plus/icons-vue'
             设置
           </RouterLink>
         </li> -->
-        <li>
+        <li v-if="isAdmin">
           <RouterLink to="/admin">
             <el-icon><User /></el-icon>
             后台管理
