@@ -9,7 +9,7 @@ from config.splitter_model import SplitterModel
 from typing import List
 class PDFSplitter(TextSplitter):
     def __init__(self,file_path:str,splitter_args,SPPLITTER_MODEL:SplitterModel=settings.SPPLITTER_MODEL, *args, **kwargs) -> None:
-        super().__init__(splitter_args=splitter_args,SPPLITTER_MODEL=settings.SPPLITTER_MODEL,*args, **kwargs)
+        super().__init__(splitter_args=splitter_args,SPPLITTER_MODEL=SPPLITTER_MODEL,*args, **kwargs)
         self.file_path = (file_path)
         self.ocr_model = OCR_Model()
         # self.splitter_model = splittermodel
