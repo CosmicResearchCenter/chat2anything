@@ -16,6 +16,7 @@ class KnowledgeBase(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     knowledgeBaseId = Column(String(18), default=lambda: str(generate_id(length=18)))
     knowledgeBaseName 	= Column(String(255))
+    is_public = Column(Boolean, default=False)
     # docs_num = Column(Integer, default=0)
     # words_num = Column(Integer, default=0)
     # related_conversations = Column(Integer, default=0)
