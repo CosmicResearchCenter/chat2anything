@@ -169,7 +169,7 @@ async function handleItemClick(conversation_id: string) {
 
 async function getKnowledgeBaseList() {
   const baseURL = import.meta.env.VITE_APP_BASE_URL;
-  const data = await getRequest<any>(baseURL+'/v1/api/mark/knowledgebase');
+  const data = await getRequest<any>(baseURL+'/v1/api/mark/chat/knowledge_base');
   knowledgebaseList.value = data.data;
 }
 
