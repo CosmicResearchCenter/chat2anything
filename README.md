@@ -5,4 +5,4 @@
 
 
 
-[QAnything API 文档](./docs/api.md)
+[Chat2Anything API 文档](./docs/api.md)
