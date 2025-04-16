@@ -5,4 +5,4 @@
 
 
 
-[QAnything API 文档](./docs/API.md)
+[QAnything API 文档](./docs/api.md)
