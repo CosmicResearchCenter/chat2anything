@@ -31,6 +31,7 @@ class ZhiPuAI_LLM(LLM):
         response = self.client.chat.completions.create(
             model=self.model,  # 填写需要调用的模型编码
             messages=self.messages,
+            max_tokens=4095
         )
         message_content=response.choices[0].message.content
         return message_content
