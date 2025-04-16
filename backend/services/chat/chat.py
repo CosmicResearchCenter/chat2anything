@@ -48,7 +48,7 @@ class Chat:
             conversation = self.match_conversations(conversation_id,username)
             print(conversation_id)
             print(f"knowledgeBaseId:{conversation.knowledgeBaseId}")
-            knowledgebase = self.mysql_session.query(KnowledgeBase).filter(KnowledgeBase.knowledgeBaseId==conversation.knowledgeBaseId , KnowledgeBase.delete_sign==False,KnowledgeBase.created_by == username).first()
+            knowledgebase = self.mysql_session.query(KnowledgeBase).filter(KnowledgeBase.knowledgeBaseId==conversation.knowledgeBaseId , KnowledgeBase.delete_sign==False,(KnowledgeBase.created_by == username)|(KnowledgeBase.is_public == True)).first()
             if knowledgebase is None:
                 raise HTTPException(status_code=400, detail="KnowledgeBase not found")
             else:
@@ -85,6 +85,13 @@ content: {item['content']}
         
         return title
         
+    # 获取知识库列表
+    def get_knowledgebases(self,username:str):
+        try:
+            all_kbse = self.mysql_session.query(KnowledgeBase).filter((KnowledgeBase.created_by == username) | (KnowledgeBase.is_public == True),KnowledgeBase.delete_sign == False)
+            return all_kbse
+        except Exception as e:
+            print(f"获取知识库失败:{e}")
     # 更改知识库
     def change_knowledgebase(self, conversation_id,knowledgeBaseId,username):
         try:
