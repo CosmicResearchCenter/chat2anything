@@ -42,6 +42,7 @@ class TextSplitter:
         return result
 
     def SplitTextByLLM(self,text:str,splitter_str:str) -> List[Document]:
+        print("开始拆分文本")
         print(len(text) )
         if len(text)<int(self.splitter_args['window_size']):
             llm_client = LLM_Manager().creatLLM(self.split_model)
@@ -64,19 +65,30 @@ class TextSplitter:
             step_size = int(self.splitter_args['step_size'])    # 滑动步长
             index = 1
             text_length = len(text)
+            
+            # 保存所有任务的Future对象
+            futures = []
 
             with ThreadPoolExecutor(max_workers=6) as executor:
                 # 处理完整的窗口块
                 for i in range(0, text_length - window_size + 1, step_size):
-                    executor.submit(self._LLM_Task, text[i:i + window_size], splitter_str)
+                    future = executor.submit(self._LLM_Task, text[i:i + window_size], splitter_str)
+                    futures.append(future)
                     print(f"正在处理第{index}个块")
                     index += 1
                 
                 # 如果剩余文本不足一个窗口大小，处理最后的部分
                 if text_length % step_size != 0:
                     last_chunk_start = max(text_length - window_size, 0)
-                    executor.submit(self._LLM_Task, text[last_chunk_start:], splitter_str)
+                    future = executor.submit(self._LLM_Task, text[last_chunk_start:], splitter_str)
+                    futures.append(future)
                     print(f"正在处理最后一个块 (剩余文本)")
+                
+                # 等待所有任务完成
+                for future in futures:
+                    future.result()  # 这里会阻塞直到任务完成
+                    
+            print(f"所有文本块处理完成，共有 {len(self.result)} 个段落")
             return self.result
     def _LLM_Task(self,retriever_text:str,splitter_str:str)->List[Document]:
         llm_client = LLM_Manager().creatLLM(self.split_model)
@@ -91,18 +103,27 @@ class TextSplitter:
         item = self._SplitText(texts,splitter_str)
         self.result.extend(item) 
     def split(self,full_text:str)->List[Document]:
-            
+            print("开始拆分文本")
+            print(self.SPPLITTER_MODEL)
             if self.SPPLITTER_MODEL == SplitterModel.LLMSplitter:
+                print("使用大模型拆分文本")
                 return self.SplitTextByLLM(full_text, "&&&&&")
             elif self.SPPLITTER_MODEL == SplitterModel.TextSplitter:
+                print("使用文本拆分器拆分文本")
                 return self.split_texts(full_text)
     
 if __name__ == "__main__":
     # text = "This is a test. This is another test."
-    with open("/Users/markyangkp/Desktop/Projects/llmqa/ocr/tmp_files/data.txt", "r") as f:
+    with open("E:\\Projects\\Chat2anything\\docs\\test.md", "r",encoding='utf-8') as f:
         text = f.read() 
-    splitter = TextSplitter()
-    docs = splitter.SplitTextByLLM(text,"&&&&&")
+    splitter_args={
+        "chunk_size": 1000,
+        "chunk_overlap": 100,
+        "window_size": 2000,
+        "step_size": 500
+    }
+    splitter = TextSplitter(splitter_args=splitter_args,SPPLITTER_MODEL=SplitterModel.LLMSplitter)
+    docs = splitter.split(text)
     for i in docs:
         print(i.page_content)
         print("---------------------\n")
