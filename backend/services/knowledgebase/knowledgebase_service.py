@@ -196,26 +196,38 @@ class KBase(MysqlClient):
         
         return index_status
     # 解析文档
-    def _insert_knowledgebase(self, base_id:int,doc:DocInfo,splitter_args,splitterModel:SplitterModel):
-        print(f'insert_knowledgebase document {doc.doc_name}')
+    def _insert_knowledgebase(self, base_id:int, doc:DocInfo, splitter_args, splitterModel:SplitterModel):
+        print(f'开始处理文档: {doc.doc_name}')
         rAG_Pipeline:RAG_Pipeline = RAG_Pipeline()
 
         save_path_p = self._get_docs_save_path(base_id)
 
         doc_newname = f'{doc.save_id}.{doc.doc_type}'
         doc_path = Path(save_path_p)/ doc_newname
-        # try:
-        docs = rAG_Pipeline.split_files(str(doc_path),splitter_args,splitterModel)
-        rAG_Pipeline.insert_knowledgebase(file_path=str(doc_path),docs=docs,knowledge_base_id=base_id,doc_name=doc.doc_name)
-        # except Exception as e:
-        #     print(f"Error parsing document {doc.doc_name}: {e}")
+        
+        try:
+            print(f'开始拆分文档: {doc_path}，使用模型: {splitterModel}')
+            docs = rAG_Pipeline.split_files(str(doc_path), splitter_args, splitterModel)
+            print(f'文档拆分完成: {doc.doc_name}, 共拆分为 {len(docs)} 个段落')
+            
+            print(f'开始插入知识库: {base_id}')
+            rAG_Pipeline.insert_knowledgebase(file_path=str(doc_path), docs=docs, knowledge_base_id=base_id, doc_name=doc.doc_name)
+            print(f'成功插入知识库: {doc.doc_name}')
+        except Exception as e:
+            print(f"处理文档时发生错误 {doc.doc_name}: {str(e)}")
+            # 可以考虑更新状态为失败
+            index_status = self.db.query(DocIndexStatus).filter(DocIndexStatus.knowledgeBaseId == base_id, DocIndexStatus.doc_id==doc.save_id).first()
+            if index_status:
+                index_status.index_status = 2  # 2 表示失败
+                self.db.commit()
+                return
 
-        index_status = self.db.query(DocIndexStatus).filter(DocIndexStatus.knowledgeBaseId == base_id,DocIndexStatus.doc_id==doc.save_id).first()
+        # 更新索引状态
+        index_status = self.db.query(DocIndexStatus).filter(DocIndexStatus.knowledgeBaseId == base_id, DocIndexStatus.doc_id==doc.save_id).first()
         if index_status:
             index_status.index_status = 1
             self.db.commit()
             self.db.refresh(index_status)
-            
 
     def get_index_status(self, base_id:str,doc_id:str)->DocIndexStatus:
         index_status = self.db.query(DocIndexStatus).filter(DocIndexStatus.knowledgeBaseId == base_id,DocIndexStatus.doc_id==doc_id).first()
