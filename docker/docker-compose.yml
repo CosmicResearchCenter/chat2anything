@@ -153,7 +153,7 @@ services:
       context: ../web
       dockerfile: Dockerfile
       args:
-      - VITE_APP_BASE_URL=http://chat2anything_backen:${BACKEND_PORT}
+      - VITE_APP_BASE_URL=http://{WEB_HOST}:${BACKEND_PORT}
     container_name: chat2anything_frontend
     depends_on:
       - chat2anything_backen
