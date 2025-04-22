@@ -16,7 +16,7 @@ services:
     ports:
       - "${MYSQL_PORT}:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - ./mysql_data:/var/lib/mysql
     networks:
       - chat2network
 
@@ -32,7 +32,7 @@ services:
       - "${ES_BASE_PORT}:9200"
       
     volumes:
-      - es_data:/usr/share/elasticsearch/data
+      - ./es_data:/usr/share/elasticsearch/data
     networks:
       - chat2network
 
@@ -45,7 +45,7 @@ services:
       - ETCD_QUOTA_BACKEND_BYTES=4294967296
       - ETCD_SNAPSHOT_COUNT=50000
     volumes:
-      - etcd:/etcd
+      - ./milvus/etcd:/etcd
     command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
     healthcheck:
       test: ["CMD", "etcdctl", "endpoint", "health"]
@@ -64,7 +64,7 @@ services:
       - "9001:9001"
       - "9000:9000"
     volumes:
-      - minio_data:/minio_data
+      - ./milvus/minio_data:/minio_data
     command: minio server /minio_data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
@@ -83,7 +83,7 @@ services:
       ETCD_ENDPOINTS: etcd:2379
       MINIO_ADDRESS: minio:9000
     volumes:
-      - milvus_data:/var/lib/milvus
+      - ./milvus/milvus_data:/var/lib/milvus
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
       interval: 30s
@@ -143,7 +143,7 @@ services:
       - "${backend_port}:9988"
   chat2anything_front:
     build:
-      context: ../frontend
+      context: ../web
       dockerfile: Dockerfile
     container_name: chat2anything_frontend
     depends_on:
@@ -153,40 +153,4 @@ services:
     ports:
       - "${frontend_port}:80"
     environment:
-      - VITE_APP_BASE_URL : chat2anything_backen:${backend_port}
-volumes:
-  mysql_data:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ./mysql_data  # Replace with the desired path on your host machine
-
-  es_data:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ./es_data  # Replace with the desired path on your host machine
-
-  minio_data:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ./minio_data  # Replace with the desired path on your host machine
-
-  milvus_data:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ./milvus_data  # Replace with the desired path on your host machine
-
-  etcd:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ./etcd  # Replace with the desired path on your host machine
-
+      - VITE_APP_BASE_URL = chat2anything_backen:${backend_port}
