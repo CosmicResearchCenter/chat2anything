@@ -160,6 +160,6 @@ services:
     ports:
       - "${frontend_port}:80"
     environment:
-      - VITE_APP_BASE_URL = chat2anything_backen:${backend_port}
+      - VITE_APP_BASE_URL=chat2anything_backen:${backend_port}
     env_file:
       - .env
