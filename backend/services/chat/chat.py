@@ -82,8 +82,15 @@ content: {item['content']}
             
         llm.setPrompt("你是一个对话标题生成器")
         title = llm.ChatToBot(prompt)
+        # 检查 title 是否为 None
+        if title is None:
+            return "新对话"  # 返回默认标题
         
-        return title
+        # 过滤掉可能的 <think></think> 标签及其内容
+        import re
+        title = re.sub(r'<think>.*?</think>', '', title, flags=re.DOTALL)
+        
+        return title.strip()
         
     # 更改知识库
     def change_knowledgebase(self, conversation_id,knowledgeBaseId,username):
@@ -225,7 +232,7 @@ content: {item['content']}
 
             # 加载对话记录
             messages = self.load_conversation(conversation.id,username)
-            if len(messages) < 6:
+            if len(messages) < 6 and len(message) > 2:
                 title = self.generate_conversation_title(conversation_id=conversation.id,username=username)
                 self.rename_conversation(conversation.id,username, title)
             messageLog = self.format_conversation_Log(messages)
@@ -287,7 +294,7 @@ content: {item['content']}
                         yield item
 
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error Chat Run: {e}")
 
     
 
