@@ -1,7 +1,8 @@
 from fastapi import FastAPI, APIRouter
 from starlette.middleware.cors import CORSMiddleware
 from api import AccountRouter,ChatRouter,KnowledgeBaseRouter,AdminRouter
-
+from core.database.mysql_client import MysqlClient
+from core.database.models import Base
 origins = [
     "*"
 ]
@@ -35,8 +36,11 @@ router.include_router(KnowledgeBaseRouter, prefix="/knowledgebase", tags=["mark"
 router.include_router(AdminRouter, prefix="/admin", tags=["mark", "admin"])
 
 app.include_router(router, prefix="/v1/api/mark", tags=["mark"])
-
-
+@app.on_event("startup")
+async def startup():
+    mysql_client = MysqlClient()
+    async with mysql_client.engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)  # 根据模型创建表
 if __name__ == "__main__":
   
 #   print(config.config.DOCS_PATH)
