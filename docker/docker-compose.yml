@@ -28,9 +28,10 @@ services:
     environment:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
-      - xpack.security.enabled=false  # 关键：禁用安全功能
-      - xpack.security.http.ssl.enabled=false 
-
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      # 添加以下环境变量
+      - "TAKE_FILE_OWNERSHIP=true"
     ports:
       - "${ES_BASE_PORT}:9200"
       - 9300:9300
@@ -42,6 +43,10 @@ services:
       memlock:
         soft: -1
         hard: -1
+      nofile:
+        soft: 65535
+        hard: 65535
+    user: "1000:1000"  # 使用特定UID:GID运行容器
     networks:
       - chat2network
 
