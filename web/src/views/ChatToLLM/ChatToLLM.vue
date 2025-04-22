@@ -293,7 +293,7 @@ onMounted(() => {
 
 .message-item-assistant {
   align-self: flex-start;
-  max-width: 80%;
+  max-width: 90%;
   margin: 10px 0;
 }
 

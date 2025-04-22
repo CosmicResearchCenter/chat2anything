@@ -3,7 +3,21 @@
         <div  class="avatar-box">
             <el-avatar class="avatar" shape="circle" size="100" fit="fit" :src="avatar_url" />
         </div>
-        <v-md-preview  :text="message" class="msg"></v-md-preview > 
+        <div class="message-content">
+            <!-- 思考内容部分 -->
+            <div v-if="hasThinkContent" class="think-box">
+                <div class="think-header" @click="toggleThinkContent">
+                    <el-icon><Cpu /></el-icon>
+                    <span>思考过程</span>
+                    <el-icon class="toggle-icon" :class="{'is-active': showThinkContent}">
+                        <ArrowDown />
+                    </el-icon>
+                </div>
+                <v-md-preview v-show="showThinkContent" :text="thinkContent" class="think-content"></v-md-preview>
+            </div>
+            <!-- 回答内容部分 -->
+            <v-md-preview :text="answerContent" class="msg"></v-md-preview>
+        </div>
     </div>
     <!-- 显示召回文档的Box -->
     <div class="retriever-box">
@@ -19,10 +33,16 @@
     </div>
 </template>
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, computed, ref } from 'vue';
 import type { PropType } from 'vue';
+import { Cpu, ArrowDown } from '@element-plus/icons-vue';
+
 export default defineComponent({
     name: 'MessageItem_Assistant',
+    components: {
+        Cpu,
+        ArrowDown
+    },
     props: {
         message: {
             type: String as PropType<string>,
@@ -37,6 +57,58 @@ export default defineComponent({
             required: true
         }
     },
+    setup(props) {
+        const showThinkContent = ref(false);
+        
+        // 解析消息内容，分离思考和回答部分
+        const hasThinkContent = computed(() => {
+            return props.message.includes('THINKING:') || 
+                   props.message.includes('<think>');
+        });
+
+        const thinkContent = computed(() => {
+            if (!hasThinkContent.value) return '';
+            
+            // 检查是否有 THINKING: 格式
+            const thinkingMatch = props.message.match(/THINKING:([\s\S]*?)(?=ANSWER:|$)/);
+            if (thinkingMatch) return thinkingMatch[1].trim();
+            
+            // 检查是否有 <think></think> 格式
+            const thinkTagMatch = props.message.match(/<think>([\s\S]*?)<\/think>/);
+            return thinkTagMatch ? thinkTagMatch[1].trim() : '';
+        });
+
+        const answerContent = computed(() => {
+            if (!hasThinkContent.value) return props.message;
+            
+            let processedMessage = props.message;
+            
+            // 处理 THINKING: 和 ANSWER: 格式
+            if (processedMessage.includes('THINKING:')) {
+                const answerMatch = processedMessage.match(/ANSWER:([\s\S]*)/);
+                return answerMatch ? answerMatch[1].trim() : '';
+            }
+            
+            // 处理 <think></think> 格式，移除标签及其内容
+            // 使用更精确的正则表达式，确保完全移除think标签及其内容
+            processedMessage = processedMessage.replace(/<think>[\s\S]*?<\/think>/g, '');
+            
+            // 去除可能的前后空白
+            return processedMessage.trim();
+        });
+
+        const toggleThinkContent = () => {
+            showThinkContent.value = !showThinkContent.value;
+        };
+
+        return {
+            hasThinkContent,
+            thinkContent,
+            answerContent,
+            showThinkContent,
+            toggleThinkContent
+        };
+    }
 });
 </script>
 <style>
@@ -55,6 +127,14 @@ export default defineComponent({
   border: 2px solid #fff;
 }
 
+.message-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 90%;
+}
+
 .msg {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(20px) saturate(180%);
@@ -65,7 +145,6 @@ export default defineComponent({
   box-shadow: 
     0 4px 24px -1px rgba(0, 0, 0, 0.1),
     0 2px 8px -1px rgba(0, 0, 0, 0.06);
-  max-width: 80%;
   position: relative;
 }
 
@@ -82,6 +161,46 @@ export default defineComponent({
   transform: rotate(45deg);
   border-left: 1px solid rgba(209, 213, 219, 0.3);
   border-bottom: 1px solid rgba(209, 213, 219, 0.3);
+}
+
+.think-box {
+  background: rgba(246, 248, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 16px;
+  padding: 16px 20px;
+  border: 1px solid rgba(57, 108, 240, 0.2);
+  box-shadow: 
+    0 4px 24px -1px rgba(57, 108, 240, 0.1),
+    0 2px 8px -1px rgba(57, 108, 240, 0.08);
+  position: relative;
+}
+
+.think-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px dashed rgba(57, 108, 240, 0.3);
+  color: #3f51b5;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.toggle-icon {
+  margin-left: auto;
+  transition: transform 0.3s ease;
+}
+
+.toggle-icon.is-active {
+  transform: rotate(180deg);
+}
+
+.think-content {
+  color: #263238;
+  font-size: 0.95em;
+  font-family: 'Courier New', monospace;
 }
 
 .retriever-box {
