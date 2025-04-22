@@ -111,7 +111,7 @@ services:
       - minio
       - etcd
     environment:
-      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_IP: ${MYSQL_IP}
       MYSQL_PORT: ${MYSQL_PORT}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
@@ -137,6 +137,8 @@ services:
       ONEAPI_API_KEY : ${ONEAPI_API_KEY}
       ONEAPI_MODEL : ${ONEAPI_MODEL}
       ONEAPI_EMBEDDING_MODEL : ${ONEAPI_EMBEDDING_MODEL}
+    env_file:
+      - .env
     networks:
       - chat2network
     ports:
@@ -154,3 +156,5 @@ services:
       - "${frontend_port}:80"
     environment:
       - VITE_APP_BASE_URL = chat2anything_backen:${backend_port}
+    env_file:
+      - .env
