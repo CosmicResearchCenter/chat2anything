@@ -22,4 +22,4 @@ RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua
 COPY . .
 
 # 启动应用程序
-CMD ["sh", "-c", "alembic upgrade head && python main.py"]
+CMD ["sh", "-c", "python main.py"]
