@@ -23,22 +23,20 @@ services:
       - chat2network
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    image: elasticsearch:8.12.0
     container_name: chat2anything_es
-    user: "1000:1000"
     environment:
       - discovery.type=single-node
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - xpack.security.enabled=false
-      - xpack.security.http.ssl.enabled=false
-      # 添加以下设置
-      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false  # 关键：禁用安全功能
+      - xpack.security.http.ssl.enabled=false 
     ulimits:
       memlock:
         soft: -1
         hard: -1
     ports:
       - "${ES_BASE_PORT}:9200"
+      - 9300:9300
     env_file:
       - .env
     volumes:
