@@ -67,6 +67,11 @@ async function sendMessage() {
   if (message.value === '') return;
   let tempValue = message.value;
 
+  // 检查是否有当前选中的对话，如果没有则创建新对话
+  if (!currentConversationId.value) {
+    await createConversation();
+  }
+
   loading.value = true; // 显示加载状态
   let chatItemUser: any = {
     id: Date.now(),
@@ -169,7 +174,7 @@ async function handleItemClick(conversation_id: string) {
 
 async function getKnowledgeBaseList() {
   const baseURL = import.meta.env.VITE_APP_BASE_URL;
-  const data = await getRequest<any>(baseURL+'/v1/api/mark/knowledgebase');
+  const data = await getRequest<any>(baseURL+'/v1/api/mark/chat/knowledge_base');
   knowledgebaseList.value = data.data;
 }
 
@@ -197,8 +202,15 @@ async function createConversation() {
     "knowledge_base_id": knowledge_base_id,
     "username": user_id
   });
-  getConversionsList();
-  handleItemClick(data.data.conversation_id);
+  
+  // 设置当前对话ID
+  currentConversationId.value = data.data.conversation_id;
+  
+  // 更新对话列表并选中新创建的对话
+  await getConversionsList();
+  await handleItemClick(data.data.conversation_id);
+  
+  return data.data.conversation_id;
 }
 
 function updateConversationTitle(conversationId: string, newTitle: string) {

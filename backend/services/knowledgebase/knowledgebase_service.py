@@ -32,7 +32,7 @@ def check_kb_owner_decorator(method: Callable):
         print(f'check_kb_owner_decorator base_id: {base_id}, username: {username}')
         kb = self.db.query(KnowledgeBase).filter(
             KnowledgeBase.knowledgeBaseId == base_id,
-            KnowledgeBase.created_by == username
+            (KnowledgeBase.created_by == username) |(KnowledgeBase.is_public == True),
         ).first()
         
         if not kb:

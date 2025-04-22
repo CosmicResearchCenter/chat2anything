@@ -172,4 +172,6 @@ async def revoke_admin(username:str,user: str = Depends(get_is_admin)):
         data=[]
     )
 
-
+@router.get("/me")
+def read_users_me(token: str = Depends(get_is_admin)):
+    return token

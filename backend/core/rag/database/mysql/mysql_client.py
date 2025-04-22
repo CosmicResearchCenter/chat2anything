@@ -48,7 +48,11 @@ class MysqlClient:
     def GetKnowledgeBasesList(self,username:str)->List[KnowledgeBase]:
         # if session is None:
         session = self.SessionLocal()
-        knowledge_bases_list = session.query(KnowledgeBase).filter(KnowledgeBase.created_by==username).all()
+        # 查找知识库名字=username 或者 is_public = True
+        knowledge_bases_list = session.query(KnowledgeBase).filter(
+            (KnowledgeBase.created_by == username),
+            KnowledgeBase.delete_sign == False
+        ).all()
         for item in knowledge_bases_list:
             docs = session.query(DocInfo).filter(DocInfo.knowledgeBaseId ==item.knowledgeBaseId).all()
             conversations = session.query(Conversation).filter(Conversation.knowledgeBaseId == item.knowledgeBaseId,Conversation.delete_sign==False).all()

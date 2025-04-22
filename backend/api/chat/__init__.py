@@ -8,6 +8,7 @@ from models.chat_models import ChatMessageRequest,KnowledgeBaseSelectRequest,Cha
 from core.rag.rag_pipeline import RAG_Pipeline
 from services.chat.chat import Chat
 from core.database.models import Chat_Messages
+from models.general_models import GenericResponse
 from typing import List
 from core.utils.utils import get_current_user
 
@@ -66,6 +67,21 @@ def chat_message(user_id: str,username: str = Depends(get_current_user)):
 
     return ChatConversationResponse(data=conversations_prased,code = 200,message="Get chat message successfully!" )
 
+# 获取知识库列表
+@router.get("/knowledge_base",tags=["获取知识库列表"],response_model=GenericResponse)
+def knowledge_base(username: str = Depends(get_current_user)):
+    chat:Chat = Chat(conversation_id="",user_id=username,rag=rag)
+    knowledgeBase = chat.get_knowledgebases(username = username)
+    data = []
+    print(knowledgeBase)
+    for kb in knowledgeBase:
+        json_data = {
+            "id": kb.knowledgeBaseId,
+            "knowledgeBaseName": kb.knowledgeBaseName
+        }
+        data.append(json_data)
+
+    return GenericResponse(message="获取成功",code=200,data=data)
 
 @router.post("/knowledge_base",tags=["切换知识库"] ,response_model=KnowledgeBaseSelectResponse)
 def knowledge_base(knowledgeBaseSelectRequest: KnowledgeBaseSelectRequest,username: str = Depends(get_current_user)):

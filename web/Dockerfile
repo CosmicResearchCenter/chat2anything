@@ -4,6 +4,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --registry https://registry.npmmirror.com
 COPY . .
+ARG VITE_APP_BASE_URL
+ENV VITE_APP_BASE_URL=${VITE_APP_BASE_URL}
 RUN npm run build
 
 # Stage 2: Serve with Nginx
