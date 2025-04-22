@@ -39,9 +39,7 @@ app.include_router(router, prefix="/v1/api/mark", tags=["mark"])
 @app.on_event("startup")
 async def startup():
     mysql_client = MysqlClient()
-    # 使用同步方式创建表
-    with mysql_client.engine.begin() as conn:
-        conn.run_sync(Base.metadata.create_all)
+    Base.metadata.create_all(mysql_client.engine)
 if __name__ == "__main__":
   
 #   print(config.config.DOCS_PATH)
