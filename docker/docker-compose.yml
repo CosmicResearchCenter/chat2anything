@@ -147,19 +147,21 @@ services:
     networks:
       - chat2network
     ports:
-      - "${backend_port}:9988"
+      - "${BACKEND_PORT}:9988"
   chat2anything_front:
     build:
       context: ../web
       dockerfile: Dockerfile
+      args:
+      - VITE_APP_BASE_URL=http://chat2anything_backen:${BACKEND_PORT}
     container_name: chat2anything_frontend
     depends_on:
       - chat2anything_backen
     networks:
       - chat2network
     ports:
-      - "${frontend_port}:80"
+      - "${WEB_POET}:80"
     environment:
-      - VITE_APP_BASE_URL=chat2anything_backen:${backend_port}
+      - VITE_APP_BASE_URL=chat2anything_backen:${BACKEND_PORT}
     env_file:
       - .env
