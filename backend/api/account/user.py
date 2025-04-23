@@ -19,6 +19,12 @@ class SignUpRequest(BaseModel):
     username: str
     password: str
 
+class SignUpAdminRequest(BaseModel):
+    username: str
+    password: str
+    admin_key: str
+
+
 class SignUpResponse(BaseModel):
     code: int
     data:AccessToken
