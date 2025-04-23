@@ -14,6 +14,7 @@ import os
 from .prompt_template.prompt_template import PromptTemplate
 from .prompt_template.prompts import INSTRUCTIONS,SYSTEM,PROMPT_TEMPLATE,RESOLVE_PRONOUNS
 from .models.knolwedge_base import ResultByDoc
+from .utils.embedding_config import EmbeddingConfig
 import time
 class RAG_Pipeline:
     def __init__(self):
@@ -25,7 +26,8 @@ class RAG_Pipeline:
     def create_knowledgebase(self, knowledge_base_name: str,username:str="admin"):
         knowledge_base_id = self.mysql_client.AddKnowledgeBasesList(knowledge_base_name,username=username).knowledgeBaseId
         indexName = self.es_client.create_index(knowledge_base_id)
-        self.milvus_client.create_collection(knowledgeBaseID=knowledge_base_id, knowledgeBaseName=knowledge_base_name, dim=1536)
+        dim = EmbeddingConfig().get_dim()
+        self.milvus_client.create_collection(knowledgeBaseID=knowledge_base_id, knowledgeBaseName=knowledge_base_name, dim=dim)
         return knowledge_base_id
     #修改知识库名字
     def modify_knowledgebase(self, new_knowledge_base_name: str,knowledge_base_id: str):
