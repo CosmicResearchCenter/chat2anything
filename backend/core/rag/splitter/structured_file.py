@@ -5,6 +5,8 @@ from core.llm.llm_manager import LLM_Manager
 from config.config_info import settings
 from config.splitter_model import SplitterModel
 from concurrent.futures import ThreadPoolExecutor
+from core.rag.prompt_template.prompt_template import PromptTemplate
+from core.rag.prompt_template.prompts import SPLITTER_PROMPT
 
 class TextSplitter:
     def __init__(self,splitter_args,SPPLITTER_MODEL=settings.SPPLITTER_MODEL,split_model:str=settings.LLM_PROVIDER):
@@ -46,14 +48,13 @@ class TextSplitter:
         print(len(text) )
         if len(text)<int(self.splitter_args['window_size']):
             llm_client = LLM_Manager().creatLLM(self.split_model)
-            prompt:str = f"""
-            请将以下文本拆分成逻辑清晰、内容独立的段落或部分。每个段落应完整表达一个主要思想或主题，并控制段落的长度，使其便于后续的分析和处理。每个段落之间使用指定的拆分符进行分隔，确保拆分后的内容不被修改
-
-            拆分符: {splitter_str}
-
-            请根据文本的结构、主题和意义进行合理拆分：
-            {text}
-            """
+            
+            prompt = PromptTemplate(
+                template=SPLITTER_PROMPT,
+                input_variables=["text","splitter_str"],
+            )
+            prompt = prompt.render(text=text,splitter_str=splitter_str)
+            
             llm_client.setPrompt(prompt="你是一名专业的文本拆分助手，你的任务是帮助用户拆分文本内容。")
             texts = llm_client.ChatToBot(content=prompt)
             self.result = self._SplitText(texts,splitter_str)
@@ -92,12 +93,13 @@ class TextSplitter:
             return self.result
     def _LLM_Task(self,retriever_text:str,splitter_str:str)->List[Document]:
         llm_client = LLM_Manager().creatLLM(self.split_model)
-        prompt:str = f"""
-        请将以下文本拆分成逻辑清晰、内容独立的段落或部分。每个段落应可以完整表达一个主要思想或主题。并控制段落的长度，使其便于后续的分析和处理。每个段落之间使用指定的拆分符进行分隔。请不要修改文本内容，确保拆分后的内容不被修改
-        拆分符: {splitter_str}
-        需要拆分的文本:
-        {retriever_text}
-        """               
+        
+        prompt = PromptTemplate(
+            template=SPLITTER_PROMPT,
+            input_variables=["text","splitter_str"],
+        )
+        prompt = prompt.render(text=retriever_text,splitter_str=splitter_str)
+                     
         llm_client.setPrompt(prompt="你是一名专业的文本拆分助手，你的任务是帮助用户拆分文本。")
         texts = llm_client.ChatToBot(content=prompt)
         item = self._SplitText(texts,splitter_str)
