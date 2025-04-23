@@ -77,11 +77,12 @@ content: {item['content']}
         prompt = f"""
 请根据以下对话内容生成一个对话标题，对话内容如下：\n
 {messageLogs_txt}\n
-请生成一个简洁明了的对话标题，不超过10个字,且仅需要输出标题。
+请生成一个简洁明了的对话标题，不超过10个字,且仅需要输出标题,如果没有内容则输出:新对话
 """
             
         llm.setPrompt("你是一个对话标题生成器")
         title = llm.ChatToBot(prompt)
+        print(f"生成的标题是：{title}")
         # 检查 title 是否为 None
         if title is None:
             return "新对话"  # 返回默认标题
@@ -239,7 +240,7 @@ content: {item['content']}
 
             # 加载对话记录
             messages = self.load_conversation(conversation.id,username)
-            if len(messages) < 6 and len(message) > 2:
+            if len(messages) < 3 and len(messages) > 0:
                 title = self.generate_conversation_title(conversation_id=conversation.id,username=username)
                 self.rename_conversation(conversation.id,username, title)
             messageLog = self.format_conversation_Log(messages)
