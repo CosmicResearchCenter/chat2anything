@@ -185,3 +185,33 @@ export async function signup(username: string, password: string) {
         throw error;
     }
 }
+
+// 添加管理员注册方法
+export async function signupAdmin(username: string, password: string, adminKey: string) {
+    try {
+        const baseURL = import.meta.env.VITE_APP_BASE_URL || 'http://127.0.0.1:9988';
+        const response = await fetch(`${baseURL}/v1/api/mark/account/signup_admin`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password, admin_key: adminKey })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || '管理员注册失败');
+        }
+
+        const result = await response.json();
+        if (result.code === 200 && result.data.access_token) {
+            saveToken(result.data.access_token);
+            return result;
+        }
+        
+        throw new Error(result.message || '管理员注册失败');
+    } catch (error) {
+        console.error('Admin Signup error:', error);
+        throw error;
+    }
+}

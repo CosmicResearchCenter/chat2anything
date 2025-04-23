@@ -4,16 +4,20 @@
       <div class="login-content">
         <div class="form-switch">
           <span 
-            :class="{ active: !isRegister }" 
-            @click="isRegister = false"
+            :class="{ active: !isRegister && !isAdminRegister }" 
+            @click="switchToLogin"
           >登录</span>
           <span 
-            :class="{ active: isRegister }" 
-            @click="isRegister = true"
+            :class="{ active: isRegister && !isAdminRegister }" 
+            @click="switchToRegister"
           >注册</span>
+          <span 
+            :class="{ active: isAdminRegister }" 
+            @click="switchToAdminRegister"
+          >管理员注册</span>
         </div>
 
-        <template v-if="!isRegister">
+        <template v-if="!isRegister && !isAdminRegister">
           <div class="form-group">
             <el-input 
               v-model="username" 
@@ -42,7 +46,7 @@
           </el-button>
         </template>
 
-        <template v-else>
+        <template v-else-if="isRegister && !isAdminRegister">
           <div class="form-group">
             <el-input 
               v-model="registerForm.username" 
@@ -79,6 +83,53 @@
             {{ loading ? '注册中...' : '注 册' }}
           </el-button>
         </template>
+
+        <template v-else-if="isAdminRegister">
+          <div class="form-group">
+            <el-input 
+              v-model="adminRegisterForm.username" 
+              placeholder="管理员用户名" 
+              class="input-field"
+              :prefix-icon="User"
+            />
+          </div>
+          <div class="form-group">
+            <el-input 
+              v-model="adminRegisterForm.password" 
+              type="password" 
+              placeholder="密码" 
+              class="input-field"
+              :prefix-icon="Lock"
+            />
+          </div>
+          <div class="form-group">
+            <el-input 
+              v-model="adminRegisterForm.confirmPassword" 
+              type="password" 
+              placeholder="确认密码" 
+              class="input-field"
+              :prefix-icon="Lock"
+            />
+          </div>
+          <div class="form-group">
+            <el-input 
+              v-model="adminRegisterForm.adminKey" 
+              type="password" 
+              placeholder="管理员密钥" 
+              class="input-field"
+              :prefix-icon="Key"
+              @keyup.enter="registerAdmin"
+            />
+          </div>
+          <el-button 
+            type="primary" 
+            @click="registerAdmin" 
+            class="login-button"
+            :loading="loading"
+          >
+            {{ loading ? '注册中...' : '管理员注册' }}
+          </el-button>
+        </template>
       </div>
     </div>
   </div>
@@ -88,8 +139,8 @@
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { User, Lock } from '@element-plus/icons-vue'
-import { login, signup } from '@/utils/http';
+import { User, Lock, Key } from '@element-plus/icons-vue'
+import { login, signup, signupAdmin } from '@/utils/http';
 
 const username = ref('');
 const password = ref('');
@@ -97,6 +148,22 @@ const loading = ref(false);
 const router = useRouter();
 
 const isRegister = ref(false);
+const isAdminRegister = ref(false);
+
+const switchToLogin = () => {
+  isRegister.value = false;
+  isAdminRegister.value = false;
+};
+
+const switchToRegister = () => {
+  isRegister.value = true;
+  isAdminRegister.value = false;
+};
+
+const switchToAdminRegister = () => {
+  isRegister.value = false;
+  isAdminRegister.value = true;
+};
 
 const handleLogin = async () => {
   if (!username.value || !password.value) {
@@ -140,12 +207,51 @@ const register = async () => {
   try {
     await signup(registerForm.username, registerForm.password);
     ElMessage.success('注册成功');
-    isRegister.value = false; // 切换到登录界面
+    switchToLogin(); // 切换到登录界面
     username.value = registerForm.username; // 自动填充用户名
     registerForm.password = '';
     registerForm.confirmPassword = '';
   } catch (error: any) {
     ElMessage.error(error.message || '注册失败');
+  } finally {
+    loading.value = false;
+  }
+};
+
+const adminRegisterForm = reactive({
+  username: '',
+  password: '',
+  confirmPassword: '',
+  adminKey: ''
+});
+
+const registerAdmin = async () => {
+  if (!adminRegisterForm.username || !adminRegisterForm.password || 
+      !adminRegisterForm.confirmPassword || !adminRegisterForm.adminKey) {
+    ElMessage.warning('请填写完整管理员注册信息');
+    return;
+  }
+
+  if (adminRegisterForm.password !== adminRegisterForm.confirmPassword) {
+    ElMessage.error('两次输入的密码不一致');
+    return;
+  }
+
+  loading.value = true;
+  try {
+    await signupAdmin(
+      adminRegisterForm.username, 
+      adminRegisterForm.password, 
+      adminRegisterForm.adminKey
+    );
+    ElMessage.success('管理员注册成功');
+    switchToLogin(); // 切换到登录界面
+    username.value = adminRegisterForm.username; // 自动填充用户名
+    adminRegisterForm.password = '';
+    adminRegisterForm.confirmPassword = '';
+    adminRegisterForm.adminKey = '';
+  } catch (error: any) {
+    ElMessage.error(error.message || '管理员注册失败');
   } finally {
     loading.value = false;
   }
