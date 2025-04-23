@@ -27,6 +27,7 @@ class RAG_Pipeline:
         knowledge_base_id = self.mysql_client.AddKnowledgeBasesList(knowledge_base_name,username=username).knowledgeBaseId
         indexName = self.es_client.create_index(knowledge_base_id)
         dim = EmbeddingConfig().get_dim()
+        print(f"dim:{dim}")
         self.milvus_client.create_collection(knowledgeBaseID=knowledge_base_id, knowledgeBaseName=knowledge_base_name, dim=dim)
         return knowledge_base_id
     #修改知识库名字
