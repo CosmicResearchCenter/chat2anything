@@ -35,6 +35,7 @@ httpx==0.28.1
 httpx-sse==0.4.0
 idna==3.10
 imageio==2.37.0
+Jinja2==3.1.6
 jiter==0.9.0
 jsonpatch==1.33
 jsonpointer==3.0.0
