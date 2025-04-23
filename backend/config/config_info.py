@@ -16,6 +16,8 @@ class Settings(BaseSettings):
         return self
     SECRET_KEY:str
     
+    ADMIN_KEY:str
+    
     MYSQL_IP:str
     MYSQL_PORT:str
     MYSQL_BASE:str

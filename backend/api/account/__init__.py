@@ -11,9 +11,12 @@ from config.config_info import settings
 from core.database.mysql_client import MysqlClient
 from core.database.models import UserInfo
 from core.utils.utils import get_current_user
-from api.account.user import LoginRequest,LoginResponse,SignUpRequest,SignUpResponse,AccessToken,TestResponse
+from api.account.user import (LoginRequest,LoginResponse,SignUpRequest,
+                              SignUpResponse,AccessToken,SignUpAdminRequest)
+
 
 SECRET_KEY = settings.SECRET_KEY
+ADMIN_KEY = settings.ADMIN_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -76,6 +79,37 @@ def signup(signupRequest: SignUpRequest):
         hashed_password = get_password_hash(password)
 
         new_user = UserInfo(username=username, password=hashed_password,is_admin=False,delete_sign=False,create_time=datetime.datetime.now(),update_time=datetime.datetime.now())
+        mysql_client.db.add(new_user)
+        mysql_client.db.commit()
+        mysql_client.db.refresh(new_user)
+
+        access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
+        access_token = create_access_token(
+            data={"sub": new_user.username}, expires_delta=access_token_expires
+        )
+
+        return SignUpResponse(code=200, data=AccessToken(access_token=access_token,token_type="bearer"), message="Sign Up Successful")
+    finally:
+        mysql_client.db.close()
+
+@router.post("/signup_admin", response_model=SignUpResponse)
+def signup(signupRequest: SignUpAdminRequest):
+    mysql_client = MysqlClient()
+    try:
+        username = signupRequest.username
+        password = signupRequest.password
+        admin_key = signupRequest.admin_key
+        if admin_key != ADMIN_KEY:
+            raise HTTPException(status_code=400, detail="Invalid admin key")
+        
+        user = mysql_client.db.query(UserInfo).filter(UserInfo.username == username).first()
+        if user:
+            raise HTTPException(status_code=400, detail="Username already exists")
+        
+        hashed_password = get_password_hash(password)
+
+        new_user = UserInfo(username=username, password=hashed_password,is_admin=True,delete_sign=False,create_time=datetime.datetime.now(),update_time=datetime.datetime.now())
         mysql_client.db.add(new_user)
         mysql_client.db.commit()
         mysql_client.db.refresh(new_user)
