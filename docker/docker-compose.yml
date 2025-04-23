@@ -127,6 +127,8 @@ services:
       - minio
       - etcd
     environment:
+      SECRET_KEY: ${SECRET_KEY}
+      ADMIN_KEY: ${ADMIN_KEY}
       MYSQL_IP: ${MYSQL_IP}
       MYSQL_PORT: ${MYSQL_PORT}
       MYSQL_USER: ${MYSQL_USER}
