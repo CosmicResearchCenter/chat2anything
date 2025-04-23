@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     MYSQL_USER:str
     MYSQL_PASSWORD:str
 
-    EMBEEDING_BASE_URL:str
-    EMBEEDING_API_KEY:str
+    EMBEDDING_BASE_URL:str
+    EMBEDDING_API_KEY:str
     EMBEDDING_MODEL_PROVIDER :str 
     EMBEDDING_MODEL :str
     

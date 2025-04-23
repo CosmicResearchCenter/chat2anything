@@ -5,7 +5,7 @@ from typing import List
 from config.config_info import settings
 
 class DouBaoEmbedding(Embedding):
-    def __init__(self,api_key:str=settings.EMBEEDING_API_KEY,base_url:str=settings.EMBEDDING_MODEL_PROVIDER,model:str=settings.EMBEDDING_MODEL) -> None:
+    def __init__(self,api_key:str=settings.EMBEDDING_API_KEY,base_url:str=settings.EMBEDDING_BASE_URL,model:str=settings.EMBEDDING_MODEL) -> None:
         self.client = Ark(
             api_key=api_key,
             base_url=base_url

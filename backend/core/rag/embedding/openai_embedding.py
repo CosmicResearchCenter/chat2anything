@@ -4,7 +4,7 @@ from .embedding import Embedding
 from config.config_info import settings
 
 class OpenAIEmbedding(Embedding):
-    def __init__(self,base_url:str=settings.EMBEEDING_BASE_URL,api_key:str=settings.EMBEEDING_API_KEY,model:str=settings.EMBEDDING_MODEL):
+    def __init__(self,base_url:str=settings.EMBEDDING_BASE_URL,api_key:str=settings.EMBEDDING_API_KEY,model:str=settings.EMBEDDING_MODEL):
         self.client = OpenAI(
             base_url=base_url,
             api_key=api_key,
