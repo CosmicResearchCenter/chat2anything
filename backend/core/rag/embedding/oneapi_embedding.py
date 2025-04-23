@@ -4,7 +4,7 @@ from .embedding import Embedding
 from config.config_info import settings
 
 class OneAPIEmbedding(Embedding):
-    def __init__(self, base_url:str=settings.ONEAPI_BASE_URL, api_key:str=settings.ONEAPI_API_KEY, model:str=settings.ONEAPI_EMBEDDING_MODEL) -> None:
+    def __init__(self, base_url:str=settings.EMBEEDING_BASE_URL, api_key:str=settings.EMBEEDING_API_KEY, model:str=settings.EMBEDDING_MODEL) -> None:
         self.base_url = base_url.rstrip('/')  # 移除末尾的斜杠
         self.api_key = api_key
         self.model = model
