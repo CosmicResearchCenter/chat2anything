@@ -141,7 +141,7 @@ def rename(reNameRequest:ReNameRequest,username: str = Depends(get_current_user)
 def create(conversationTitleCreateRequest: ConversationTitleCreateRequest,username: str = Depends(get_current_user)):
     chat:Chat = Chat(conversation_id="",user_id=username,rag=rag)
     try:
-        title = chat.generate_conversation_title(conversationTitleCreateRequest.conversation_id,username)
+        title = "新对话"
         conversation = chat.rename_conversation(conversationTitleCreateRequest.conversation_id,username,title)
         return ConversationCreateResponse(code = 200,message="Create conversation successfully!",data=[{"conversation_id":conversation.id,"conversation_name":conversation.conversationName}])
     except Exception as e:
