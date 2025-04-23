@@ -11,9 +11,10 @@ from langchain_core.documents import Document as LcDocument
 from core.rag.database.mysql.model import KnowledgeBase
 from .rerank.rerank import RerankRunner
 import os
-
+from .prompt_template.prompt_template import PromptTemplate
+from .prompt_template.prompts import INSTRUCTIONS,SYSTEM,PROMPT_TEMPLATE,RESOLVE_PRONOUNS
 from .models.knolwedge_base import ResultByDoc
-
+import time
 class RAG_Pipeline:
     def __init__(self):
         self.mysql_client = MysqlClient()
@@ -158,7 +159,7 @@ class RAG_Pipeline:
                 # print(result.metadata['score'])
         resultByDoc:ResultByDoc = ResultByDoc(source=source_docs_result,query=question)
         return resultByDoc
-
+    
     #生成回答
     def generate_answer_by_knowledgebase(self,resultByDoc:ResultByDoc,history_messages=[],streaming=False):
         print("generate_answer_by_knowledgebase")
@@ -171,38 +172,34 @@ class RAG_Pipeline:
 
 
         llm = LLM_Manager().creatLLM(mode_provider=settings.LLM_PROVIDER)
-        prompt_system =f"""
-你是一个专业的知识库问答助手。你的唯一信息来源是提供给你的文档内容。
 
-回答准则:
-1. 严格使用提供的文档内容作为知识来源，不引入外部信息
-2. 如果文档包含完整答案，直接基于文档回答
-3. 如果文档包含部分信息，可进行合理推断，但必须明确标注【推断】部分
-4. 如果文档不含相关信息，直接回复:"根据提供的文档内容，我无法回答这个问题。"
-5. 引用原文时使用引号，并在回答最后标注引用来源
+        prompt_system = PromptTemplate(
+            template=SYSTEM,
+            input_variables=['today_date', 'current_time']
+        )
+        today_date = time.strftime("%Y-%m-%d", time.localtime())
+        current_time = time.strftime("%H:%M:%S", time.localtime())
+        prompt_system = prompt_system.render(
+            today_date=today_date,
+            current_time=current_time
+        )
+        print(f"prompt_system:{prompt_system}") 
+        instructions = PromptTemplate(
+            template=INSTRUCTIONS,
+            input_variables=['question']
+        )
+        instructions = instructions.render(
+            question=resultByDoc.query
+        )
 
-输出格式:
-- 简洁清晰，结构化呈现
-- 专业客观，避免主观评价
-- 适当使用列表和段落提高可读性
-""" 
-        prompt = f"""
-
-【用户问题】
-{resultByDoc.query}
-回答步骤:
-1. 仔细分析用户问题，确定所需信息
-2. 与用户问题无关的信息不予考虑和输出
-3. 组织这些信息形成完整、准确的回答
-4. 如需推断，用【推断】标记
-5. 如知识库中没有相关信息，明确告知用户
-
-请根据以下知识库内容回答用户问题:
-【知识库内容】
-{prompt_source}
-
-"""
-        print(prompt)
+        prompt = PromptTemplate(
+            template=PROMPT_TEMPLATE,
+            input_variables=['instructions', 'context']
+        )
+        prompt = prompt.render(
+            instructions=instructions,
+            context=prompt_source
+        )
 
         llm.addHistory(history_messages)
         llm.setPrompt(prompt_system)
