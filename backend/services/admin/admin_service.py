@@ -63,10 +63,10 @@ class AdminService:
             # 不能返回管理员的对话
             user_conversation_list = []
             # 获取当前请求用户信息
-            current_user = mysql_client.db.query(User).filter(
-                User.username == username
+            current_user = mysql_client.db.query(UserInfo).filter(
+                UserInfo.username == username
             ).first()
-            if current_user.admin_sign:
+            if current_user and current_user.is_admin:
                 return []
             else:
                 # 获取用户对话
@@ -128,10 +128,10 @@ class AdminService:
             # 不能返回管理员的知识库
             knowledge_base_list = []
             # 获取当前请求用户信息
-            current_user = mysql_client.db.query(User).filter(
-                User.username == username
+            current_user = mysql_client.db.query(UserInfo).filter(
+                UserInfo.username == username
             ).first()
-            if current_user.admin_sign:
+            if current_user.is_admin:
                 return []
             else:
                 # 获取用户知识库
