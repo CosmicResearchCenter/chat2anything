@@ -138,7 +138,7 @@ li a.router-link-active {
 
 main {
   flex: 1;
-  overflow: hidden; 
+  overflow: scroll; 
   padding: 1rem;
   background: #f2fcfc;
   border-top: 1px solid #3a3a4f;
