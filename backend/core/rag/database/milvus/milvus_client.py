@@ -21,7 +21,8 @@ class MilvusCollectionManager:
             FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
             FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR, dim=dim),
             FieldSchema(name="content", dtype=DataType.VARCHAR, max_length=10000),
-            FieldSchema(name="knowledge_doc_name", dtype=DataType.VARCHAR, max_length=512)
+            FieldSchema(name="knowledge_doc_name", dtype=DataType.VARCHAR, max_length=512),
+            FieldSchema(name="knowledge_doc_id", dtype=DataType.VARCHAR, max_length=512)
         ]
         schema = CollectionSchema(fields, description=knowledgeBaseName)
         self.collection = Collection(name=knowledgeBaseID, schema=schema)
@@ -44,12 +45,13 @@ class MilvusCollectionManager:
         vectors = [item["vector"] for item in data]
         contents = [item["content"] for item in data]
         knowledge_doc_names = [item["knowledge_doc_name"] for item in data]  # 新增字段
-
+        knowledge_doc_ids = [item["knowledge_doc_id"] for item in data]  # 新增字段
         entities = [
             # ids,  # ID字段
             vectors,  # 向量字段
             contents,  # 内容字段
-            knowledge_doc_names  # 新增字段
+            knowledge_doc_names,  # 新增字段
+            knowledge_doc_ids  # 新增字段
         ]
         self.collection.insert(entities)
         self.collection.flush()
@@ -106,6 +108,19 @@ class MilvusCollectionManager:
             return True
         except Exception as e:
             print(f"Failed to drop collection '{name}': {e}")
+    
+    # 删除指定集合下的指定内容内容
+    def delete_by_knowledge_doc_id(self, knowledgeBaseID, knowledge_doc_id):
+        self.load_collection(knowledgeBaseID)
+        """根据ID删除内容"""
+        if self.collection is None:
+            raise ValueError("No collection is loaded or created")
+
+        # 将字符串值用引号包裹
+        expr = f'knowledge_doc_id == "{knowledge_doc_id}"'
+        self.collection.delete(expr=expr)
+        self.collection.flush()
+        print(f"Deleted entity with knowledge_doc_id '{knowledge_doc_id}' from collection '{self.collection.name}'")
             
 # 使用示例
 if __name__ == "__main__":

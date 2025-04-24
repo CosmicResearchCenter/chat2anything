@@ -46,12 +46,13 @@ class ElasticClient:
             return "Not Hit"
         
     # 批量写入数据
-    def insert_data(self, docs:List[Document],knowledgeBaseID:str,knowledgeDocName:str):
+    def insert_data(self, docs:List[Document],knowledgeBaseID:str,knowledge_doc_name:str,knowledge_doc_id:str):
         data = []
         for doc in docs:
             item = {
                 "content":doc.page_content,
-                "knowledgeDocName":knowledgeDocName
+                "knowledge_doc_name":knowledge_doc_name,
+                "knowledge_doc_id":knowledge_doc_id,
             }
             data.append(item)
         # 构建批量写入的 actions 列表
@@ -79,6 +80,18 @@ class ElasticClient:
         # 删除索引
         response = self.es_client.indices.delete(index=knowledgeBaseID)
         # print(response)
+        return response
+    # 删除指定内容
+    def delete_by_knowledge_doc_id(self,index:str,knowledge_doc_name:str)->str:
+        # 删除指定内容
+        query = {
+            "query": {
+                "match": {
+                    "knowledge_doc_id": knowledge_doc_name
+                }
+            }
+        }
+        response = self.es_client.delete_by_query(index=index, body=query)
         return response
 if __name__ == "__main__":
     client = ElasticClient(base_url="10.116.123.148",port=9200)
