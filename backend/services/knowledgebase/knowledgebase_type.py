@@ -18,3 +18,4 @@ class KnowledgeBaseConfig(BaseModel):
     knowledgeBaseName: str
     rag_model: int
     is_rerank: bool
+    is_public: bool

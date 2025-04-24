@@ -252,7 +252,7 @@ class KBase(MysqlClient):
         if not config:
             raise HTTPException(status_code=404, detail="KnowledgeBase config not found")
         
-        return KnowledgeBaseConfig(knowledgeBaseId=base_id,knowledgeBaseName=knowledgeBaseName,rag_model=config.rag_model,is_rerank=config.is_rerank)
+        return KnowledgeBaseConfig(knowledgeBaseId=base_id,knowledgeBaseName=knowledgeBaseName,rag_model=config.rag_model,is_rerank=config.is_rerank,is_public=knowledgeBase.is_public)
     # 更新知识库配置信息
     @check_kb_owner_decorator
     def update_kb_config(self, base_id:str,username:str,config:KnowledgeBaseConfig)->GenericResponse:
@@ -273,6 +273,8 @@ class KBase(MysqlClient):
         self.db.commit()
         self.db.refresh(config_db)
         
+        
+
         return GenericResponse(message="KnowledgeBase config updated successfully", code=200,data=[])
     
     # 重命名文档名字
@@ -296,3 +298,31 @@ class KBase(MysqlClient):
         self.db.commit()
         self.db.refresh(doc)
         return GenericResponse(message="Document archived successfully", code=200,data=[])
+    
+    # 公开知识库
+    @check_kb_owner_decorator
+    def public_kb(self,base_id:str,username:str)->GenericResponse:
+        kb = self.db.query(KnowledgeBase).filter(KnowledgeBase.knowledgeBaseId == base_id).first()
+        if not kb:
+            return GenericResponse(message="KnowledgeBase published Error", code=404,data=[])
+        
+        if kb.is_public:
+            return GenericResponse(message="KnowledgeBase already published", code=200,data=[])
+        kb.is_public = True
+        self.db.commit()
+        self.db.refresh(kb)
+        return GenericResponse(message="KnowledgeBase published successfully", code=200,data=[])
+    
+    # 取消公开知识库
+    @check_kb_owner_decorator
+    def unpublic_kb(self,base_id:str,username:str)->GenericResponse:
+        kb = self.db.query(KnowledgeBase).filter(KnowledgeBase.knowledgeBaseId == base_id).first()
+        if not kb:
+            return GenericResponse(message="KnowledgeBase published Error", code=404,data=[])
+        
+        if not kb.is_public:
+            return GenericResponse(message="KnowledgeBase unpublic private", code=200,data=[])
+        kb.is_public = False
+        self.db.commit()
+        self.db.refresh(kb)
+        return GenericResponse(message="KnowledgeBase unpublic successfully", code=200,data=[])

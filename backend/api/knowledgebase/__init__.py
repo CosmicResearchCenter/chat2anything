@@ -7,7 +7,7 @@ from services.knowledgebase.knowledgebase_service import KBase
 from services.knowledgebase.knowledgebase_type import CreateBaseRequest,IndexStatusRequest,DocumentSplitArgs,KnowledgeBaseConfig
 from models.general_models import GenericResponse
 from typing import List
-from core.utils.utils import get_current_user
+from core.utils.utils import get_current_user,get_is_admin
 from core.database.mysql_client import MysqlClient
 from core.database.models import KnowledgeBase
 from concurrent.futures import ThreadPoolExecutor
@@ -146,3 +146,15 @@ async def rename_doc_name(base_id:str,doc_id:str,new_name:str,username: str = De
 async def archive_doc(base_id:str,doc_id:str,username: str = Depends(get_current_user)):
     kb_manager = KBase()
     return kb_manager.archive_doc(base_id,username, doc_id)
+
+# 公开知识库
+@router.put("/{base_id}/public",tags=["公开知识库"],response_model=GenericResponse)
+async def public_kb(base_id:str,username: str = Depends(get_is_admin)):
+    kb_manager = KBase()
+    return kb_manager.public_kb(base_id,username)
+
+# 取消公开知识库
+@router.put("/{base_id}/unpublic",tags=["取消公开知识库"],response_model=GenericResponse)
+async def unpublic_kb(base_id:str,username: str = Depends(get_is_admin)):
+    kb_manager = KBase()
+    return kb_manager.unpublic_kb(base_id,username)
