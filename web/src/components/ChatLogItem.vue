@@ -1,6 +1,9 @@
 <template>
-    <el-card class="chatlog-title">
-        {{ title }}
+    <el-card class="chatlog-title" shadow="hover">
+        <div class="chatlog-content">
+            <el-icon class="chatlog-icon"><ChatDotRound /></el-icon>
+            <span class="chatlog-text">{{ title }}</span>
+        </div>
         <div class="dropdown-container">
             <el-dropdown trigger="click">
                 <span class="el-dropdown-link" @click.stop>
@@ -10,8 +13,12 @@
                 </span>
                 <template #dropdown>
                     <el-dropdown-menu>
-                        <el-dropdown-item @click="renameConversation">重命名</el-dropdown-item>
-                        <el-dropdown-item @click="deleteConversation">删除</el-dropdown-item>
+                        <el-dropdown-item @click="renameConversation">
+                            <el-icon><Edit /></el-icon>重命名
+                        </el-dropdown-item>
+                        <el-dropdown-item @click="deleteConversation" class="delete-item">
+                            <el-icon><Delete /></el-icon>删除
+                        </el-dropdown-item>
                     </el-dropdown-menu>
                 </template>
             </el-dropdown>
@@ -24,9 +31,16 @@ import { defineComponent } from 'vue';
 import type { PropType } from 'vue';
 import { getRequest, postRequest, deleteRequest } from '@/utils/http';
 import { ElMessageBox, ElMessage } from 'element-plus';
+import { ChatDotRound, Edit, Delete, More } from '@element-plus/icons-vue';
 
 export default defineComponent({
     name: 'MessageItem',
+    components: {
+        ChatDotRound,
+        Edit,
+        Delete,
+        More
+    },
     props: {
         title: {
             type: String as PropType<string>,
@@ -44,13 +58,18 @@ export default defineComponent({
                     confirmButtonText: '删除',
                     cancelButtonText: '取消',
                     type: 'warning',
+                    confirmButtonClass: 'el-button--danger'
                 });
                 const baseURL = import.meta.env.VITE_APP_BASE_URL;
                 const response: any = await deleteRequest(baseURL + `/v1/api/mark/chat/conversation/mark/${this.conversation_id.toString()}`);
                 console.log(response.code);
                 if (response.code === 200) {
-                    ElMessage.success(response.message);
-                    this.$emit('refreshList'); // 可以在父组件中监听此事件并刷新对话列表
+                    ElMessage.success({
+                        message: response.message,
+                        duration: 2000,
+                        showClose: true
+                    });
+                    this.$emit('refreshList'); 
                 } else {
                     ElMessage.error('删除失败');
                 }
@@ -58,8 +77,6 @@ export default defineComponent({
                 // 判断是否是取消操作
                 if (error !== 'cancel') {
                     ElMessage.error('删除失败');
-                } else {
-                    ElMessage.info('删除取消');
                 }
             }
         },
@@ -68,19 +85,25 @@ export default defineComponent({
             const newName = await ElMessageBox.prompt('输入新的对话名称', '重命名', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
+                inputValidator: (value) => {
+                    return value.trim() !== '' ? true : '对话名称不能为空'
+                }
             }).catch(() => null);
-            console.log(newName);
-            console.log(this.conversation_id);
-            const baseURL = import.meta.env.VITE_APP_BASE_URL;
+            
             if (newName && newName.value) {
+                const baseURL = import.meta.env.VITE_APP_BASE_URL;
                 const response: any = await postRequest(baseURL+'/v1/api/mark/chat/conversation-rename/', {
                     conversation_id: this.conversation_id.toString(),
-                    new_name: newName.value,
+                    new_name: newName.value.trim(),
                     user_id: 'mark',
                 });
                 if (response.code === 200) {
-                    ElMessage.success('重命名成功');
-                    this.$emit('updateTitle', response.data.conversation_name);  // 可以在父组件中监听此事件更新标题
+                    ElMessage.success({
+                        message: '重命名成功',
+                        duration: 2000,
+                        showClose: true
+                    });
+                    this.$emit('updateTitle', response.data.conversation_name);
                 } else {
                     ElMessage.error('重命名失败');
                 }
@@ -92,13 +115,74 @@ export default defineComponent({
 
 <style>
 .chatlog-title {
-    text-align: center;
     position: relative;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.chatlog-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chatlog-icon {
+    color: #0245a3;
+    font-size: 16px;
+}
+
+.chatlog-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 14px;
 }
 
 .dropdown-container {
     position: absolute;
-    bottom: 10px;
     right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.chatlog-title:hover .dropdown-container {
+    opacity: 1;
+}
+
+.el-dropdown-link {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 6px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.el-dropdown-link:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.el-dropdown-menu :deep(.el-dropdown-item) {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 15px;
+}
+
+.delete-item {
+    color: #f56c6c;
+}
+
+.el-dropdown-menu :deep(.el-dropdown-item:hover) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.el-dropdown-menu :deep(.el-dropdown-menu__item i) {
+    margin-right: 5px;
 }
 </style>
