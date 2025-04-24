@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List,Optional
 from datetime import datetime
+
 class SystemInfo(BaseModel):
     knowledge_base_count: int
     user_count: int
@@ -56,3 +57,24 @@ class DocInfo_Re(BaseModel):
     doc_type: str
     doc_size: int
     delete_sign: bool
+
+class SystemResources(BaseModel):
+    cpu_usage: float
+    memory_usage: float
+    disk_usage: float
+    status: str
+
+class TrendData(BaseModel):
+    labels: List[str]
+    values: List[int]
+
+class Activity(BaseModel):
+    id: int
+    type: str
+    action: str
+    username: str
+    time: str
+
+class ActiveUsersStats(BaseModel):
+    active_users: int
+    growth_rate: float
