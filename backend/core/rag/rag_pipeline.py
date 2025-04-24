@@ -44,7 +44,7 @@ class RAG_Pipeline:
         return split_file(file_path,splitter_args=splitter_args,splitterModel=splitterModel)
     
     #文档插入知识库
-    def insert_knowledgebase(self,file_path:str,docs:List[LcDocument], knowledge_base_id: str,doc_name:str):
+    def insert_knowledgebase(self,file_path:str,docs:List[LcDocument], knowledge_base_id: str,doc_name:str,knowledge_doc_id:str):
 
         ### 插入数据库
         # print("插入数据库")
@@ -59,7 +59,8 @@ class RAG_Pipeline:
             item = {
                 "content": content,
                 "knowledge_doc_name": knowledge_doc_name,
-                "vector": vector
+                "vector": vector,
+                "knowledge_doc_id":knowledge_doc_id
             }
             mdata.append(item)
         
@@ -67,7 +68,7 @@ class RAG_Pipeline:
         self.milvus_client.create_index(collection=knowledge_base_id)
         ### 写入 ElasticSearch
         print("写入 ElasticSearch")
-        success,failed = self.es_client.insert_data(docs,knowledge_base_id,knowledge_doc_name)
+        success,failed = self.es_client.insert_data(docs,knowledge_base_id,knowledge_doc_name,knowledge_doc_id)
         print(f"成功插入 {success} 条数据，失败 {len(failed)} 条数据")
         # return success,failed
     #文档召回
@@ -103,7 +104,7 @@ class RAG_Pipeline:
             i = 0
             for item in result_elastic:
                 content = item["_source"]["content"]
-                knowledge_doc_name = item["_source"]["knowledgeDocName"]
+                knowledge_doc_name = item["_source"]["knowledge_doc_name"]
                 sourceDoc = SourceDocument(content=content, knowledge_doc_name=knowledge_doc_name)
                 result.append(sourceDoc)
                 i += 1
