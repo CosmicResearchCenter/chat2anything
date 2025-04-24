@@ -218,6 +218,7 @@ export default defineComponent({
 }
 
 .col-card {
+    margin-top: 20px;
     margin-bottom: 20px;
 }
 
