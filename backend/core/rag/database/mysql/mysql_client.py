@@ -54,7 +54,7 @@ class MysqlClient:
             KnowledgeBase.delete_sign == False
         ).all()
         for item in knowledge_bases_list:
-            docs = session.query(DocInfo).filter(DocInfo.knowledgeBaseId ==item.knowledgeBaseId).all()
+            docs = session.query(DocInfo).filter(DocInfo.knowledgeBaseId ==item.knowledgeBaseId,DocInfo.delete_sign == False).all()
             conversations = session.query(Conversation).filter(Conversation.knowledgeBaseId == item.knowledgeBaseId,Conversation.delete_sign==False).all()
             item.docs_num = len(docs)
             item.related_conversations = len(conversations)
