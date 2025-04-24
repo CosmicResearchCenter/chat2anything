@@ -150,11 +150,14 @@ async def archive_doc(base_id:str,doc_id:str,username: str = Depends(get_current
 # 公开知识库
 @router.put("/{base_id}/public",tags=["公开知识库"],response_model=GenericResponse)
 async def public_kb(base_id:str,username: str = Depends(get_is_admin)):
+    self_username = username.data[0]['username']
     kb_manager = KBase()
-    return kb_manager.public_kb(base_id,username)
+    return kb_manager.public_kb(base_id,self_username)
 
 # 取消公开知识库
 @router.put("/{base_id}/unpublic",tags=["取消公开知识库"],response_model=GenericResponse)
 async def unpublic_kb(base_id:str,username: str = Depends(get_is_admin)):
     kb_manager = KBase()
-    return kb_manager.unpublic_kb(base_id,username)
+    self_username = username.data[0]['username']
+
+    return kb_manager.unpublic_kb(base_id,self_username)
