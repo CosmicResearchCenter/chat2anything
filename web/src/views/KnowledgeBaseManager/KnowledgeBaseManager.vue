@@ -96,11 +96,16 @@
                     <el-form-item label="知识库名字">
                         <el-input v-model="settings.knowledgeBaseName" placeholder="请输入知识库名字" />
                     </el-form-item>
+                    
+                    <div class="settings-section">
+                        <h3 class="settings-subtitle">检索配置</h3>
+                    </div>
+                    
                     <el-form-item label="RAG模式">
                         <el-radio-group v-model="settings.rag_model">
-                            <el-radio label="0">混合检索（向量+模糊查询）</el-radio>
-                            <el-radio label="1">向量检索</el-radio>
-                            <el-radio label="2">模糊检索</el-radio>
+                            <el-radio :label="0">混合检索（向量+模糊查询）</el-radio>
+                            <el-radio :label="1">向量检索</el-radio>
+                            <el-radio :label="2">模糊检索</el-radio>
                         </el-radio-group>
                     </el-form-item>
                     <el-form-item label="启用二阶段重排">
@@ -109,6 +114,17 @@
                     <el-form-item>
                         <el-button type="primary" @click="saveSettings">保存设置</el-button>
                     </el-form-item>
+                    
+                    <!-- 只有管理员才能看到访问权限设置 -->
+                    <div class="settings-section" v-if="isAdmin">
+                        <h3 class="settings-subtitle">访问权限</h3>
+                        
+                        <el-form-item label="公开知识库">
+                            <el-switch v-model="settings.is_public" @change="togglePublicStatus" />
+                            <span class="setting-desc">公开后其他用户可访问此知识库</span>
+                        </el-form-item>
+                    </div>
+
                 </el-form>
             </div>
         </el-col>
@@ -161,8 +177,11 @@ export default defineComponent({
             knowledgeBaseId:"",
             knowledgeBaseName: '',
             rag_model: 0,
-            is_rerank: false
+            is_rerank: false,
+            is_public: false
         });
+
+        const isAdmin = ref(false);
 
         // 获取文档列表并获取每个文档的索引状态
         const fetchFiles = async () => {
@@ -211,6 +230,18 @@ export default defineComponent({
             } catch (error) {
                 console.error(error);
                 ElMessage.error("Error fetching settings.");
+            }
+        };
+
+        // 检查当前用户是否为管理员
+        const checkIsAdmin = async () => {
+            try {
+                const baseURL = import.meta.env.VITE_APP_BASE_URL;
+                const response: any = await getRequest(baseURL + '/v1/api/mark/admin/me');
+                isAdmin.value = response.code === 200;
+            } catch (error) {
+                console.error('Error checking admin status:', error);
+                isAdmin.value = false;
             }
         };
 
@@ -311,9 +342,36 @@ export default defineComponent({
             }
         };
 
+        const togglePublicStatus = async (status: boolean) => {
+            const baseId = route.params.base_id as string;
+            try {
+                const baseURL = import.meta.env.VITE_APP_BASE_URL;
+                const endpoint = status ? 
+                    `/v1/api/mark/knowledgebase/${baseId}/public` : 
+                    `/v1/api/mark/knowledgebase/${baseId}/unpublic`;
+                
+                const response: any = await putRequest(baseURL + endpoint, {});
+                
+                if (response.code === 200) {
+                    const message = status ? "知识库已公开" : "已取消知识库公开状态";
+                    ElMessage.success(message);
+                } else {
+                    ElMessage.error(status ? "设置知识库公开失败" : "取消知识库公开失败");
+                    // 恢复开关状态
+                    settings.value.is_public = !status;
+                }
+            } catch (error) {
+                console.error(error);
+                ElMessage.error("操作知识库公开状态时出错");
+                // 恢复开关状态
+                settings.value.is_public = !status;
+            }
+        };
+
         onMounted(() => {
             fetchFiles();
             get_kb_config();
+            checkIsAdmin(); // 添加管理员权限检查
         });
 
         return {
@@ -333,7 +391,9 @@ export default defineComponent({
             renameDialogVisible,
             newDocName,
             openRenameDialog,
-            confirmRename
+            confirmRename,
+            togglePublicStatus,
+            isAdmin // 将isAdmin添加到返回对象
         };
     }
 });
@@ -551,5 +611,38 @@ export default defineComponent({
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+}
+
+.setting-desc {
+    margin-left: 10px;
+    color: #909399;
+    font-size: 12px;
+}
+
+.settings-section {
+    margin: 20px 0 10px;
+    padding-top: 15px;
+    border-top: 1px solid #ebeef5;
+}
+
+.settings-subtitle {
+    font-size: 16px;
+    font-weight: 500;
+    color: #606266;
+    margin-bottom: 15px;
+}
+
+.settingBox {
+    .el-form-item {
+        margin-bottom: 24px;
+    }
+    
+    .el-switch {
+        margin-left: 8px;
+    }
+    
+    .el-button {
+        padding: 12px 24px;
+    }
 }
 </style>
