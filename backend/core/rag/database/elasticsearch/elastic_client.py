@@ -43,7 +43,7 @@ class ElasticClient:
             return response['hits']['hits']
         else:
             # 返回未找到结果的消息
-            return "Not Hit"
+            return []
         
     # 批量写入数据
     def insert_data(self, docs:List[Document],knowledgeBaseID:str,knowledge_doc_name:str,knowledge_doc_id:str):
