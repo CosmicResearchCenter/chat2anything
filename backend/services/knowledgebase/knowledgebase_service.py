@@ -117,6 +117,12 @@ class KBase(MysqlClient):
             return GenericResponse(message="Document not found", code=404,data=[])
         doc.delete_sign = True
         
+        milvus_client = MilvusCollectionManager()
+        milvus_client.delete_by_knowledge_doc_id(base_id,doc_id)
+
+        es_client = ElasticClient()
+        es_client.delete_by_knowledge_doc_id(base_id,doc_id)
+
         self.db.commit()
         self.db.refresh(doc)
         
@@ -211,7 +217,7 @@ class KBase(MysqlClient):
             print(f'文档拆分完成: {doc.doc_name}, 共拆分为 {len(docs)} 个段落')
             
             print(f'开始插入知识库: {base_id}')
-            rAG_Pipeline.insert_knowledgebase(file_path=str(doc_path), docs=docs, knowledge_base_id=base_id, doc_name=doc.doc_name)
+            rAG_Pipeline.insert_knowledgebase(file_path=str(doc_path), docs=docs, knowledge_base_id=base_id, doc_name=doc.doc_name, knowledge_doc_id=doc.save_id)
             print(f'成功插入知识库: {doc.doc_name}')
         except Exception as e:
             print(f"处理文档时发生错误 {doc.doc_name}: {str(e)}")
