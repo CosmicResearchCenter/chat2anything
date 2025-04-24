@@ -30,7 +30,7 @@ Chat2Anything 是一个强大的检索增强生成(RAG)系统，允许用户通�
 
 ## 系统需求
 - Docker 和 Docker Compose
-- 至少4GB RAM
+- 至少8GB RAM
 - 网络连接(用于API调用)
 - Git
 
@@ -58,8 +58,9 @@ vim .env
 # 基本配置
 SECRET_KEY=chat2anything_secret_key      # 应用密钥
 BACKEND_PORT=9988                        # 后端服务端口
-WEB_POET=12345                          # 前端端口
-WEB_HOST=127.0.0.1                       # 前端服务主机地址
+BACKEND_HOST=127.0.0.1                       # 后端服务主机地址 如果你是部署在远程服务器，需要改成你远程服务器的ip
+WEB_PORT=12345                          # 前端端口
+
 
 # 数据库配置
 MYSQL_IP=chat2anything_db                # MySQL服务名称
@@ -69,10 +70,10 @@ MYSQL_USER=chat2anything_user            # 数据库用户
 MYSQL_PASSWORD=chat2anything_password    # 数据库密码
 
 # 向量嵌入配置
-EMBEEDING_BASE_URL=https://aihubmix.com/v1  # 向量服务地址
-EMBEEDING_API_KEY=                        # 向量服务API密钥
+EMBEDDING_BASE_URL=https://aihubmix.com/v1  # 向量服务地址
+EMBEDDING_API_KEY=                        # 向量服务API密钥
 EMBEDDING_MODEL_PROVIDER=OPENAI           # 向量模型提供商
-
+EMBEDDING_MODEL=
 # LLM配置
 LLM_PROVIDER=OPENAI                       # LLM提供商
 SPPLITTER_MODEL=0                         # 拆分模型参数
@@ -101,7 +102,7 @@ sudo docker-compose up -d
 
 ### 源码部署
 #### 环境要求
-- Python 3.8+ (推荐Python 3.10)
+- Python 3.9+ (推荐Python 3.11)
 - Node.js 16+ 和 npm 8+
 - MySQL 8.0+
 - Elasticsearch 8.x
