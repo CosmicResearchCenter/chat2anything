@@ -38,7 +38,9 @@ onMounted(async () => {
 
 <template>
   <div class="container">
+    
     <nav class="glass-nav">
+      <!-- <h1>Chat2Anything</h1> -->
       <ul>
         <li>
           <RouterLink to="/">
@@ -87,14 +89,19 @@ onMounted(async () => {
 
 nav {
   width: 100%;
-  padding: 1rem;
-  position: fixed;
-  top: 0;
-  left: 0;
+  height: 60px;
+  display: flex;
+  /* padding: 1rem; */
+  /* position: fixed; */
+  /* top: 0; */
+  /* left: 0; */
+  justify-content: center;
+  align-items: center;
   z-index: 1000;
 }
 
 .glass-nav {
+  
   background: rgba(2, 69, 163, 0.85);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -170,11 +177,11 @@ li a:hover .el-icon {
 
 main {
   flex: 1;
-  overflow: auto;
-  padding: 1rem;
+  overflow: hidden;
+  /* padding: 1rem; */
   background: linear-gradient(135deg, #f0f7fa 0%, #e0f0f8 100%);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-  margin-top: 4rem;
+  /* margin-top: 4rem; */
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.1);
 }
