@@ -64,4 +64,4 @@ async def get_is_admin(token: str = Depends(oauth2_scheme)):
     if user.is_admin != 1:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not admin")
     
-    return GenericResponse(message="获取成功",code=200,data=[{'is_admin':user.is_admin}])
+    return GenericResponse(message="获取成功",code=200,data=[{'is_admin':user.is_admin,'username':user.username}])
