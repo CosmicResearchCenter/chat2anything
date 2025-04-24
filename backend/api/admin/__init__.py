@@ -1,7 +1,7 @@
 """
 后台管理员部分的路由
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 import hashlib
 import jwt
 import datetime
@@ -18,7 +18,11 @@ from .admin import (ResponseGenral,
                     DeleteUserKnowledgeBaseRequest,
                     DeleteUserRequest,
                     GrantAdminRequest,
-                    RevokeAdminRequest
+                    RevokeAdminRequest,
+                    UserGrowthRequest,
+                    ConversationTrendRequest,
+                    RecentActivitiesRequest,
+                    ActiveUsersRequest
                     )
 router = APIRouter()
 
@@ -47,9 +51,10 @@ async def get_users_conversation(username: str = Depends(get_is_admin)):
 
 # 根据用户名获取对话列表
 @router.get("/user_conversation/{username}", response_model=ResponseGenral)
-async def get_user_conversation(username: str, s_username: str = Depends(get_is_admin)):
+async def get_user_conversation(username: str, s_username = Depends(get_is_admin)):
+    self_username = s_username.data[0]['username']
     admin_service = AdminService()
-    user_conversation = admin_service.get_user_conversation(username,s_username)
+    user_conversation = admin_service.get_user_conversation(username,self_username)
     return ResponseGenral(
         code=200,
         message="返回用户对话信息",
@@ -58,6 +63,7 @@ async def get_user_conversation(username: str, s_username: str = Depends(get_is_
 # 根据对话id获取对话信息
 @router.get("/conversation/{conversation_id}", response_model=ResponseGenral)
 async def get_conversation(conversation_id: str, username: str = Depends(get_is_admin)):
+    
     admin_service = AdminService()
     conversation = admin_service.get_conversation_content(conversation_id,username)
     return ResponseGenral(
@@ -70,7 +76,8 @@ async def get_conversation(conversation_id: str, username: str = Depends(get_is_
 @router.get("/user_knowledge_base/{username}", response_model=ResponseGenral)
 async def get_user_knowledge_base(username: str, s_username: str = Depends(get_is_admin)):
     admin_service = AdminService()
-    user_knowledge_base = admin_service.get_user_knowledge_base(username,s_username)
+    self_username = s_username.data[0]['username']
+    user_knowledge_base = admin_service.get_user_knowledge_base(username,self_username)
     return ResponseGenral(
         code=200,
         message="返回用户知识库信息",
@@ -78,8 +85,9 @@ async def get_user_knowledge_base(username: str, s_username: str = Depends(get_i
     )
 @router.get("/user_knowledge_base/{username}/{knowledge_base_id}", response_model=ResponseGenral)
 async def get_knowledge_base(username:str,knowledge_base_id: str, username_s: str = Depends(get_is_admin)):
+    self_username = username_s.data[0]['username']
     admin_service = AdminService()
-    knowledge_base = admin_service.get_knowledge_base(username,knowledge_base_id,username_s)
+    knowledge_base = admin_service.get_knowledge_base(username,knowledge_base_id,self_username)
     return ResponseGenral(
         code=200,
         message="返回用户知识库信息",
@@ -89,8 +97,9 @@ async def get_knowledge_base(username:str,knowledge_base_id: str, username_s: st
 # 删除用户
 @router.delete("/user/{username}", response_model=ResponseGenral)
 async def delete_user(username:str, username_s: str = Depends(get_is_admin)):
+    self_username = username_s.data[0]['username']
     admin_service = AdminService()
-    status =  admin_service.delete_user(username,username_s)
+    status =  admin_service.delete_user(username,self_username)
     if status == False:
         return ResponseGenral(
             code=400,
@@ -106,8 +115,9 @@ async def delete_user(username:str, username_s: str = Depends(get_is_admin)):
 # 删除用户对话
 @router.delete("/user_conversation/{username}/{conversation_id}", response_model=ResponseGenral)
 async def delete_user_conversation(username:str,conversation_id:str, username_s: str = Depends(get_is_admin)):
+    self_username = username_s.data[0]['username']
     admin_service = AdminService()
-    status =  admin_service.delete_user_conversation(username,conversation_id,username_s)
+    status =  admin_service.delete_user_conversation(username,conversation_id,self_username)
     if status == False:
         return ResponseGenral(
             code=400,
@@ -123,8 +133,9 @@ async def delete_user_conversation(username:str,conversation_id:str, username_s:
 # 删除用户知识库
 @router.delete("/user_knowledge_base/{username}/{knowledge_base_id}", response_model=ResponseGenral)
 async def delete_user_knowledge_base(username:str,knowledge_base_id:str, username_s: str = Depends(get_is_admin)):
+    self_username = username_s.data[0]['username']
     admin_service = AdminService()
-    status = admin_service.delete_user_knowledge_base(username,knowledge_base_id,username_s)
+    status = admin_service.delete_user_knowledge_base(username,knowledge_base_id,self_username)
     if status == False:
         return ResponseGenral(
             code=400,
@@ -175,3 +186,72 @@ async def revoke_admin(username:str,user: str = Depends(get_is_admin)):
 @router.get("/me")
 def read_users_me(token: str = Depends(get_is_admin)):
     return token
+
+# 获取系统资源使用情况
+@router.get("/system_resources", response_model=ResponseGenral)
+async def get_system_resources(username: str = Depends(get_is_admin)):
+    admin_service = AdminService()
+    resources = admin_service.get_system_resources()
+    return ResponseGenral(
+        code=200,
+        message="获取系统资源使用情况成功",
+        data=[resources]
+    )
+
+# 获取用户增长趋势
+@router.get("/user_growth", response_model=ResponseGenral)
+async def get_user_growth(
+    period: str = Query("month", description="时间段，如'month'或'day'"), 
+    count: int = Query(7, description="返回数据点数量"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    growth_data = admin_service.get_user_growth(period, count)
+    return ResponseGenral(
+        code=200,
+        message="获取用户增长趋势成功",
+        data=[growth_data]
+    )
+
+# 获取对话量趋势
+@router.get("/conversation_trend", response_model=ResponseGenral)
+async def get_conversation_trend(
+    period: str = Query("month", description="时间段，如'month'或'day'"), 
+    count: int = Query(7, description="返回数据点数量"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    trend_data = admin_service.get_conversation_trend(period, count)
+    return ResponseGenral(
+        code=200,
+        message="获取对话量趋势成功",
+        data=[trend_data]
+    )
+
+# 获取系统最近活动
+@router.get("/recent_activities", response_model=ResponseGenral)
+async def get_recent_activities(
+    limit: int = Query(5, description="返回的活动条数"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    activities = admin_service.get_recent_activities(limit)
+    return ResponseGenral(
+        code=200,
+        message="获取系统最近活动成功",
+        data=[activities]
+    )
+
+# 获取活跃用户统计
+@router.get("/active_users", response_model=ResponseGenral)
+async def get_active_users(
+    period: str = Query("daily", description="活跃周期，如'daily'或'monthly'"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    active_users = admin_service.get_active_users(period)
+    return ResponseGenral(
+        code=200,
+        message="获取活跃用户统计成功",
+        data=[active_users]
+    )

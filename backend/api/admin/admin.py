@@ -22,3 +22,17 @@ class GrantAdminRequest(BaseModel):
 
 class RevokeAdminRequest(BaseModel):
     username: str
+
+class UserGrowthRequest(BaseModel):
+    period: str
+    count: int
+
+class ConversationTrendRequest(BaseModel):
+    period: str
+    count: int
+
+class RecentActivitiesRequest(BaseModel):
+    limit: int = 5
+
+class ActiveUsersRequest(BaseModel):
+    period: str
