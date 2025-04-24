@@ -46,7 +46,7 @@ class AdminService:
     def get_user_conversation(self,username:str,s_username:str)->List[Conversation_Collection]:
         mysql_client = MysqlClient()
         
-        if s_username == 'admin':
+        if s_username == 'admin' or s_username == username:
             # 获取用户对话
             conversations = mysql_client.db.query(Conversation).filter(
                 Conversation.username == username
@@ -102,7 +102,7 @@ class AdminService:
     # 根据用户获取知识库列表
     def get_user_knowledge_base(self,username:str,s_username:str)->List[KnowledgeBaseItem]:
         mysql_client = MysqlClient()
-        if s_username == 'admin':
+        if s_username == 'admin' or s_username == username:
             # 获取用户知识库
             knowledge_bases = mysql_client.db.query(KnowledgeBase).filter(
                 KnowledgeBase.created_by == username
@@ -158,7 +158,7 @@ class AdminService:
     def get_knowledge_base(self,username:str,knowledge_base_id:str,username_s:str)->List[DocInfo_Re]:
         
         mysql_client = MysqlClient()
-        if username_s == 'admin':
+        if username_s == 'admin' or username_s == username:
             # 获取知识库文档
             knowledge_base = mysql_client.db.query(KnowledgeBase).filter(
                 KnowledgeBase.created_by == username,
@@ -183,10 +183,10 @@ class AdminService:
             # 不能返回管理员的知识库
             doc_list = []
             # 获取当前请求用户信息
-            current_user = mysql_client.db.query(User).filter(
-                User.username == username
+            current_user = mysql_client.db.query(UserInfo).filter(
+                UserInfo.username == username
             ).first()
-            if current_user.admin_sign:
+            if current_user.is_admin:
                 return []
             else:
                 # 获取知识库文档
