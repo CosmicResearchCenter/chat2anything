@@ -47,7 +47,7 @@
             <el-input v-model="knowledgeBaseName" placeholder="请输入知识库名称"></el-input>
             <span slot="footer" class="dialog-footer">
                 <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="createKnowledgeBase">确定</el-button>
+                <el-button type="primary" @click="createKnowledgeBase" :loading="isCreating">确定</el-button>
             </span>
         </el-dialog>
     </el-row>
@@ -73,6 +73,7 @@ export default defineComponent({
         const files = ref<FileData[]>([]);
         const dialogVisible = ref(false); // 控制弹出框的显示与隐藏
         const knowledgeBaseName = ref(""); // 存储知识库名称
+        const isCreating = ref(false); // 添加创建状态跟踪变量
 
         // 打开弹出框
         const openDialog = () => {
@@ -107,6 +108,9 @@ export default defineComponent({
 
         // 创建知识库
         const createKnowledgeBase = async () => {
+            if (isCreating.value) return; // 防止重复提交
+            isCreating.value = true;
+            
             try {
                 const baseURL = import.meta.env.VITE_APP_BASE_URL;
                 const response: any = await postRequest(baseURL+'/v1/api/mark/knowledgebase/', {
@@ -123,6 +127,8 @@ export default defineComponent({
                 }
             } catch (error) {
                 console.error('请求创建知识库失败:', error);
+            } finally {
+                isCreating.value = false; // 无论成功或失败，都结束加载状态
             }
         };
 
@@ -158,7 +164,8 @@ export default defineComponent({
             openDialog,
             createKnowledgeBase,
             goToKnowledgeBase,
-            handleMenuCommand
+            handleMenuCommand,
+            isCreating // 将状态暴露给模板
         };
     }
 });
