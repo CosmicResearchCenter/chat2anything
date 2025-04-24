@@ -38,7 +38,7 @@ onMounted(async () => {
 
 <template>
   <div class="container">
-    <nav>
+    <nav class="glass-nav">
       <ul>
         <li>
           <RouterLink to="/">
@@ -79,8 +79,7 @@ onMounted(async () => {
   overflow-y: hidden;
   height: 100vh;
   width: 100vw;
-  background: #f2fcfc;
-  /* color: #000000; */
+  background: linear-gradient(135deg, #f0f7fa 0%, #e0f0f8 100%);
   position: fixed;
   top: 0;
   left: 0;
@@ -88,14 +87,20 @@ onMounted(async () => {
 
 nav {
   width: 100%;
-  background: #0245a3;
   padding: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid #3a3a4f;
   position: fixed;
   top: 0;
   left: 0;
   z-index: 1000;
+}
+
+.glass-nav {
+  background: rgba(2, 69, 163, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  transition: all 0.3s ease;
 }
 
 ul {
@@ -116,34 +121,75 @@ li a {
   align-items: center;
   gap: 8px;
   text-decoration: none;
-  color: #cfd8dc;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 0.6rem 1.2rem;
+  border-radius: 12px;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+li a::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  z-index: -1;
+  border-radius: 12px;
 }
 
 li a:hover {
-  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
   transform: translateY(-2px);
+}
+
+li a:hover::before {
+  transform: translateY(0);
 }
 
 li a.router-link-active {
   background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
   font-weight: 500;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .el-icon {
-  margin-right: 4px;
+  margin-right: 8px;
+  transition: transform 0.3s ease;
+}
+
+li a:hover .el-icon {
+  transform: scale(1.1);
 }
 
 main {
   flex: 1;
-  overflow: scroll; 
+  overflow: auto;
   padding: 1rem;
-  background: #f2fcfc;
-  border-top: 1px solid #3a3a4f;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-top: 4rem; /* 确保内容不被固定导航栏遮挡 */
+  background: linear-gradient(135deg, #f0f7fa 0%, #e0f0f8 100%);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  margin-top: 4rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.1);
+}
+
+main::-webkit-scrollbar {
+  width: 6px;
+}
+
+main::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+main::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
 }
 
 /* 在小屏幕下，调整导航栏的布局 */
@@ -155,6 +201,11 @@ main {
 
   nav li {
     margin: 10px 0;
+    width: 80%;
+  }
+
+  li a {
+    justify-content: center;
   }
 
   main {
