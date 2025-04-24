@@ -8,6 +8,7 @@ import datetime
 from pydantic import BaseModel
 from passlib.context import CryptContext
 from core.database.models import UserInfo
+from models.general_models import GenericResponse
 from core.database.mysql_client import MysqlClient
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
@@ -63,4 +64,4 @@ async def get_is_admin(token: str = Depends(oauth2_scheme)):
     if user.is_admin != 1:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not admin")
     
-    return username
+    return GenericResponse(message="获取成功",code=200,data=[{'is_admin':user.is_admin}])
