@@ -69,20 +69,17 @@ async def upload(
     if kb == None:
         return GenericResponse(message="知识库不存在",code=400,data=[])
     
-    
     print("uploading file")
     if file == None:
         return GenericResponse(message="文件不能为空",code=400,data=[])
     
-    base_id = base_id
- 
     if base_id == "":
         return GenericResponse(message="知识库ID不能为空",code=400,data=[])
     
     kb_manager = KBase()
 
-    # index_infos = await  kb_manager.upload_files(base_id,file,threadPool)
-    index_infos =   kb_manager.upload_files(base_id,username,[file],background_tasks,executor)
+    # 调用异步方法
+    index_infos = await kb_manager.upload_files(base_id, username, [file], background_tasks, executor)
 
     index_infos_prase = []
     for index_info in index_infos:
@@ -92,7 +89,6 @@ async def upload(
             'knowledgeBaseId':index_info.knowledgeBaseId
         }
         index_infos_prase.append(info)
-
 
     return GenericResponse(message="上传成功",code=200,data=index_infos_prase)
 

@@ -17,6 +17,7 @@ from pathlib import Path
 import uuid
 import asyncio
 import threading
+import aiofiles
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 
@@ -136,11 +137,13 @@ class KBase(MysqlClient):
     # 更新知识库
     # 为每个文档生成一个信息字典，包括文档id、文档名称、文档类型等信息，保存到数据库中
     @check_kb_owner_decorator
-    def upload_files(self, base_id:int,username:str, files:List[UploadFile],background_tasks:BackgroundTasks,executor:ThreadPoolExecutor)->List[DocIndexStatus]:
+    async def upload_files(self, base_id:int, username:str, files:List[UploadFile], 
+                           background_tasks:BackgroundTasks, executor:ThreadPoolExecutor) -> List[DocIndexStatus]:
         from config.config_info import settings
         save_path_p = self._get_docs_save_path(base_id)
         docs:List[DocInfo] = []
         docs_status:List[DocIndexStatus] = []
+        
         for file in files:
             doc_name = file.filename
             extension = file.filename.split('.')[-1]
@@ -148,33 +151,29 @@ class KBase(MysqlClient):
                 raise HTTPException(status_code=400, detail=f"Invalid file extension: {extension}")
 
             create_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-
             doc_size = file.size
-            
             save_id = str(uuid.uuid4())
-       
             doc_newname = f'{save_id}.{extension}'
+            save_path = Path(save_path_p) / doc_newname
 
-            save_path = Path(save_path_p)/ doc_newname
-
-            # 保存文件到本地
-            with open(save_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-            doc = DocInfo(doc_name=doc_name, doc_type=extension, doc_size=doc_size, create_time=create_time, knowledgeBaseId=base_id,save_id=save_id)
+            # 异步保存文件到本地
+            contents = await file.read()
+            async with aiofiles.open(save_path, "wb") as buffer:
+                await buffer.write(contents)
+                
+            doc = DocInfo(doc_name=doc_name, doc_type=extension, doc_size=doc_size, 
+                          create_time=create_time, knowledgeBaseId=base_id, save_id=save_id)
             
             self.db.add(doc)
             self.db.commit()
             docs.append(doc)
 
-            index_status = DocIndexStatus(index_status=0,knowledgeBaseId=base_id,doc_id=save_id)
+            index_status = DocIndexStatus(index_status=0, knowledgeBaseId=base_id, doc_id=save_id)
             self.db.add(index_status)
             self.db.commit()
-
             docs_status.append(index_status)
 
-            
-
-            print(f'{len(files)} files saved successfully')
+        print(f'{len(files)} files saved successfully')
         return docs_status
     @check_kb_owner_decorator
     def insert_knowledgebase(self,base_id,username,documentSplitArgs:DocumentSplitArgs,doc_id,background_tasks:BackgroundTasks,executor:ThreadPoolExecutor)->DocIndexStatus:
