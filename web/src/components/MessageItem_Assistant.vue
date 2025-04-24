@@ -1,6 +1,6 @@
 <template>
     <div class="msg-box">
-        <div  class="avatar-box">
+        <div class="avatar-box">
             <el-avatar class="avatar" shape="circle" size="100" fit="fit" :src="avatar_url" />
         </div>
         <div class="message-content">
@@ -42,6 +42,7 @@
         </div>
     </div>
 </template>
+
 <script lang="ts">
 import { defineComponent, computed, ref } from 'vue';
 import type { PropType } from 'vue';
@@ -134,6 +135,7 @@ export default defineComponent({
     }
 });
 </script>
+
 <style>
 .msg-box {
   display: flex;
@@ -145,9 +147,14 @@ export default defineComponent({
 .avatar {
   width: 45px;
   height: 45px;
-  border-radius: 12px;
+  border-radius: 50%;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border: 2px solid #fff;
+  transition: all 0.3s ease;
+}
+
+.avatar-box:hover .avatar {
+  transform: scale(1.05);
 }
 
 .message-content {
@@ -159,16 +166,24 @@ export default defineComponent({
 }
 
 .msg {
-  background: rgba(255, 255, 255, 0.8);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-radius: 16px;
+  border-radius: 4px 18px 18px 18px;
   padding: 16px 20px;
-  border: 1px solid rgba(209, 213, 219, 0.3);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   box-shadow: 
-    0 4px 24px -1px rgba(0, 0, 0, 0.1),
-    0 2px 8px -1px rgba(0, 0, 0, 0.06);
+    0 4px 24px -1px rgba(0, 0, 0, 0.08),
+    0 2px 8px -1px rgba(0, 0, 0, 0.03);
   position: relative;
+  transition: all 0.3s ease;
+}
+
+.msg:hover {
+  box-shadow: 
+    0 6px 30px -1px rgba(0, 0, 0, 0.12),
+    0 3px 10px -1px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
 }
 
 .msg::before {
@@ -178,25 +193,32 @@ export default defineComponent({
   top: 20px;
   width: 16px;
   height: 16px;
-  background: rgba(255, 255, 255, 0.8);
+  background: #ffffff;
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   transform: rotate(45deg);
-  border-left: 1px solid rgba(209, 213, 219, 0.3);
-  border-bottom: 1px solid rgba(209, 213, 219, 0.3);
+  border-left: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .think-box {
-  background: rgba(246, 248, 255, 0.85);
+  background: rgba(228, 237, 255, 0.9);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-radius: 16px;
   padding: 16px 20px;
-  border: 1px solid rgba(57, 108, 240, 0.2);
+  border: 1px solid rgba(57, 108, 240, 0.15);
   box-shadow: 
     0 4px 24px -1px rgba(57, 108, 240, 0.1),
-    0 2px 8px -1px rgba(57, 108, 240, 0.08);
+    0 2px 8px -1px rgba(57, 108, 240, 0.06);
   position: relative;
+  transition: all 0.3s ease;
+}
+
+.think-box:hover {
+  box-shadow: 
+    0 6px 30px -1px rgba(57, 108, 240, 0.15),
+    0 3px 10px -1px rgba(57, 108, 240, 0.1);
 }
 
 .think-header {
@@ -209,6 +231,11 @@ export default defineComponent({
   color: #3f51b5;
   font-weight: 500;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.think-header:hover {
+  color: #0369e1;
 }
 
 .toggle-icon {
@@ -224,6 +251,9 @@ export default defineComponent({
   color: #263238;
   font-size: 0.95em;
   font-family: 'Courier New', monospace;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
 }
 
 /* 召回文档区域的样式优化 */
@@ -231,14 +261,26 @@ export default defineComponent({
   margin: 16px 60px;
   padding: 15px;
   border-radius: 16px;
-  background: rgba(245, 247, 250, 0.8);
+  background: rgba(245, 247, 250, 0.9);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(209, 213, 219, 0.4);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   box-shadow: 
     0 4px 20px -1px rgba(0, 0, 0, 0.08),
     0 2px 8px -1px rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.retriever-box:hover {
+  box-shadow: 
+    0 6px 26px -1px rgba(0, 0, 0, 0.12),
+    0 3px 10px -1px rgba(0, 0, 0, 0.06);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .retriever-header {
@@ -249,11 +291,11 @@ export default defineComponent({
   color: #444;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .retriever-header:hover {
-  color: #1a73e8;
+  color: #0369e1;
 }
 
 .retriever-header .el-icon {
@@ -263,6 +305,7 @@ export default defineComponent({
 
 .retriever-content {
   margin-top: 10px;
+  animation: fadeIn 0.3s ease-in-out;
 }
 
 .retriever-content :deep(.el-collapse) {
@@ -274,11 +317,11 @@ export default defineComponent({
   font-size: 14px;
   font-weight: 500;
   color: #333;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 8px;
-  border: 1px solid rgba(209, 213, 219, 0.4);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   margin-bottom: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .retriever-content :deep(.el-collapse-item__header:hover) {
@@ -289,10 +332,10 @@ export default defineComponent({
 
 .retriever-content :deep(.el-collapse-item__content) {
   padding: 16px;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 8px;
   margin-bottom: 12px;
-  border: 1px solid rgba(209, 213, 219, 0.3);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .doc-content {
@@ -316,5 +359,55 @@ export default defineComponent({
 .doc-content::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.15);
   border-radius: 3px;
+}
+
+.doc-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* 代码块样式美化 */
+.msg :deep(code) {
+  background-color: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.msg :deep(pre) {
+  background-color: #f6f8fa;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 10px 0;
+  overflow-x: auto;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.msg :deep(pre code) {
+  background-color: transparent;
+  padding: 0;
+}
+
+/* 表格美化 */
+.msg :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 15px 0;
+}
+
+.msg :deep(th),
+.msg :deep(td) {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.msg :deep(th) {
+  background-color: #f2f2f2;
+  font-weight: 600;
+}
+
+.msg :deep(tr:nth-child(even)) {
+  background-color: #f9f9f9;
 }
 </style>
