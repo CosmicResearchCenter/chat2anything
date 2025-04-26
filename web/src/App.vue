@@ -78,7 +78,8 @@ watch(
         </li>
       </ul>
     </nav>
-    <main>
+    <!-- Remove padding from main if child components handle it -->
+    <main> 
       <RouterView />
     </main>
   </div>
@@ -88,10 +89,11 @@ watch(
 .container {
   display: flex;
   flex-direction: column;
-  overflow-y: hidden;
+  overflow-y: scroll;
   height: 100vh;
   width: 100vw;
-  background: linear-gradient(135deg, #f0f7fa 0%, #e0f0f8 100%);
+  /* background: linear-gradient(135deg, #f0f7fa 0%, #e0f0f8 100%); */ /* Moved background to specific views or keep global */
+  background-color: #f7f8fa; /* Use a consistent light background */
   position: fixed;
   top: 0;
   left: 0;
@@ -99,7 +101,7 @@ watch(
 
 nav {
   width: 100%;
-  height: 60px;
+  height: 60px; /* Ensure consistent height */
   display: flex;
   /* padding: 1rem; */
   /* position: fixed; */
@@ -187,16 +189,17 @@ li a:hover .el-icon {
 
 main {
   flex: 1;
-  overflow: hidden;
-  /* padding: 1rem; */
-  background: linear-gradient(135deg, #f0f7fa 0%, #e0f0f8 100%);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-  /* margin-top: 4rem; */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* Let child components handle scrolling */
+  /* Remove padding: padding: 1rem; */ 
+  /* Remove margin-top: margin-top: 4rem; */
+  /* background: linear-gradient(135deg, #f0f7fa 0%, #e0f0f8 100%); */ /* Remove background if child handles it */
+  /* box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05); */ /* Remove inset shadow */
+  /* Remove scrollbar styles if child handles scrolling */
+  /* scrollbar-width: thin; */
+  /* scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.1); */
 }
 
-main::-webkit-scrollbar {
+/* main::-webkit-scrollbar {
   width: 6px;
 }
 
@@ -207,7 +210,7 @@ main::-webkit-scrollbar-track {
 main::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 3px;
-}
+} */
 
 /* 在小屏幕下，调整导航栏的布局 */
 @media screen and (max-width: 768px) {
@@ -226,8 +229,8 @@ main::-webkit-scrollbar-thumb {
   }
 
   main {
-    margin-top: 5rem;
-    padding: 1rem 0.5rem;
+    /* Remove margin-top: margin-top: 5rem; */
+    /* Remove padding: padding: 1rem 0.5rem; */
   }
 }
 </style>
