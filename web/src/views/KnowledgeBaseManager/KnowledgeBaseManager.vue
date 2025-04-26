@@ -492,8 +492,8 @@ export default defineComponent({
                     return;
                 }
                 splitter_args = {
-                    window_size: parseInt(reindexWindowSize.value, 10),
-                    step_size: parseInt(reindexStepSize.value, 10)
+                    window_size: reindexWindowSize.value,
+                    step_size: reindexStepSize.value, 
                 };
             } else {
                  if (!reindexChunkSize.value || !reindexChunkOverlap.value || isNaN(Number(reindexChunkSize.value)) || isNaN(Number(reindexChunkOverlap.value))) {
@@ -501,8 +501,8 @@ export default defineComponent({
                     return;
                 }
                 splitter_args = {
-                    chunk_size: parseInt(reindexChunkSize.value, 10),
-                    chunk_overlap: parseInt(reindexChunkOverlap.value, 10)
+                    chunk_size: reindexChunkSize.value,
+                    chunk_overlap: reindexChunkOverlap.value
                 };
             }
 
