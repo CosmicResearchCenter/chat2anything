@@ -140,4 +140,5 @@ class UserInfo(Base):
     update_time = Column(TIMESTAMP)
     delete_sign = Column(Boolean, default=False)
     is_admin = Column(Boolean, default=False)
-    
+    status = Column(String(20), default='active') # 新增 status 字段，默认为 active
+
