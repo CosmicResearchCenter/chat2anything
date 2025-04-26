@@ -166,7 +166,7 @@ async def unpublic_kb(base_id:str,username: str = Depends(get_is_admin)):
 @router.post("/{base_id}/reindex/{doc_id}",tags=["重新索引"],response_model=GenericResponse)
 async def reindex_kb(base_id:str,doc_id:str,documentSplitArgs:DocumentSplitArgs,background_tasks: BackgroundTasks,username: str = Depends(get_current_user)):
     kb_manager = KBase()
-    res:GenericResponse = kb_manager.delete_document(base_id,username,doc_id)
+    res:GenericResponse = kb_manager.delete_document_es_mi(base_id,username,doc_id)
     if res.code == 200:
         re_index = kb_manager.insert_knowledgebase(base_id,username,documentSplitArgs,doc_id,background_tasks,executor)
         return GenericResponse(message="正在重新建立索引",code=200,data=[re_index.to_dict()])
