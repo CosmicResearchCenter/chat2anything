@@ -81,7 +81,7 @@ async function fetchUsers() {
   try {
     const baseURL = import.meta.env.VITE_APP_BASE_URL;
     const response = await getRequest<any>(baseURL + '/v1/api/mark/admin/users');
-    users.value = response.data[0].map((user: any) => ({
+    users.value = response.data.users.map((user: any) => ({
       id: user.username,
       username: user.username,
       avatar: '',

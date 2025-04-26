@@ -91,7 +91,7 @@ async function fetchUsers() {
     const baseURL = import.meta.env.VITE_APP_BASE_URL;
     const response = await getRequest<any>(baseURL + '/v1/api/mark/admin/users');
     if (response.code === 200) {
-      users.value = response.data[0];
+      users.value = response.data.users;
     } else {
       ElMessage.error('获取用户列表失败');
     }

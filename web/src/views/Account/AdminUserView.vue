@@ -15,10 +15,10 @@
       <!-- 搜索和过滤 -->
       <div class="search-bar">
         <div class="search-input">
-          <el-input v-model="searchUser" placeholder="搜索用户名/邮箱/ID..." prefix-icon="Search" clearable />
+          <el-input v-model="searchUser" placeholder="搜索用户名/邮箱..." prefix-icon="Search" clearable @clear="fetchUsers" @keyup.enter="fetchUsers"/>
         </div>
         <div class="search-actions">
-          <el-select v-model="userTypeFilter" placeholder="用户类型" style="width: 120px;">
+          <el-select v-model="userTypeFilter" placeholder="用户类型" style="width: 120px;" @change="handleFilterChange">
             <el-option label="全部用户" value="all" />
             <el-option label="管理员" value="admin" />
             <el-option label="普通用户" value="user" />
@@ -35,7 +35,7 @@
       <!-- 用户列表 -->
       <div class="table-container">
         <el-table
-          :data="filteredUsers"
+          :data="users"  
           :loading="loading"
           style="width: 100%"
           border
@@ -55,9 +55,9 @@
             </template>
           </el-table-column>
           <el-table-column prop="email" label="邮箱" min-width="180" />
-          <el-table-column prop="created_at" label="注册时间" min-width="180">
+          <el-table-column prop="create_time" label="注册时间" min-width="180">
             <template #default="scope">
-              {{ formatDate(scope.row.created_at) }}
+              {{ formatDate(scope.row.create_time) }}
             </template>
           </el-table-column>
           <el-table-column prop="status" label="状态" width="100">
@@ -72,8 +72,9 @@
               <el-button link type="primary" @click.stop="viewUserDetail(scope.row)">
                 <el-icon><View /></el-icon>查看
               </el-button>
-              <el-button link type="primary" @click.stop="toggleAdmin(scope.row)">
-                {{ scope.row.admin_sign ? '撤销管理员' : '授权管理员' }}
+              <el-button link :type="scope.row.status === 'active' ? 'warning' : 'success'" @click.stop="toggleUserStatus(scope.row)">
+                <el-icon><Switch /></el-icon>
+                {{ scope.row.status === 'active' ? '禁用' : '启用' }}
               </el-button>
               <el-button link type="danger" @click.stop="confirmDeleteUser(scope.row)">
                 <el-icon><Delete /></el-icon>删除
@@ -90,6 +91,7 @@
           layout="total, sizes, prev, pager, next, jumper"
           :total="totalUsers"
           :page-size="pageSize"
+          :current-page="currentPage"
           :page-sizes="[10, 20, 50, 100]"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
@@ -114,15 +116,15 @@
             <p>{{ selectedUser.email }}</p>
           </div>
         </div>
-        
+
         <el-divider />
-        
+
         <div class="user-stats">
           <div class="stat-block">
             <h4>用户信息</h4>
             <el-descriptions :column="1" border>
               <el-descriptions-item label="用户ID">{{ selectedUser.username }}</el-descriptions-item>
-              <el-descriptions-item label="注册时间">{{ formatDate(selectedUser.created_at) }}</el-descriptions-item>
+              <el-descriptions-item label="注册时间">{{ formatDate(selectedUser.create_time) }}</el-descriptions-item>
               <el-descriptions-item label="管理权限">
                 <el-tag :type="selectedUser.admin_sign ? 'primary' : 'info'">
                   {{ selectedUser.admin_sign ? '管理员' : '普通用户' }}
@@ -135,116 +137,124 @@
               </el-descriptions-item>
             </el-descriptions>
           </div>
-          
+
           <div class="stat-block">
             <h4>使用统计</h4>
             <el-descriptions :column="1" border>
-              <el-descriptions-item label="对话数量">{{ userStats.conversationCount }}</el-descriptions-item>
-              <el-descriptions-item label="知识库数量">{{ userStats.knowledgeBaseCount }}</el-descriptions-item>
-              <el-descriptions-item label="最近活跃">{{ userStats.lastActive }}</el-descriptions-item>
+              <el-descriptions-item label="对话数量">{{ selectedUser.stats?.conversationCount ?? 'N/A' }}</el-descriptions-item>
+              <el-descriptions-item label="知识库数量">{{ selectedUser.stats?.knowledgeBaseCount ?? 'N/A' }}</el-descriptions-item>
+              <el-descriptions-item label="最近活跃">{{ formatDate(selectedUser.stats?.lastActive) }}</el-descriptions-item>
             </el-descriptions>
           </div>
         </div>
-        
+
         <el-divider />
-        
+
         <div class="user-actions">
-          <el-button type="primary" @click="toggleAdmin(selectedUser)">
-            {{ selectedUser.admin_sign ? '撤销管理员' : '授权管理员' }}
-          </el-button>
+           <el-button :type="selectedUser.status === 'active' ? 'warning' : 'success'" @click="toggleUserStatus(selectedUser)">
+             {{ selectedUser.status === 'active' ? '禁用用户' : '启用用户' }}
+           </el-button>
           <el-button type="danger" @click="confirmDeleteUser(selectedUser)">删除用户</el-button>
         </div>
       </div>
+      <el-skeleton :rows="10" animated v-else />
     </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue';
-import { getRequest, deleteRequest, postRequest } from '@/utils/http';
+import { ref, onMounted, reactive } from 'vue';
+import { getRequest, deleteRequest, postRequest, putRequest } from '@/utils/http'; // 确保导入 putRequest
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { User, Search, Refresh, View, Delete, Switch } from '@element-plus/icons-vue'; // 导入图标
 
 const searchUser = ref('');
 const userTypeFilter = ref('all');
 const loading = ref(false);
-const users = ref<any[]>([]);
+const users = ref<any[]>([]); // 只存储当前页的用户
 const userDetailDrawer = ref(false);
-const selectedUser = ref<any | null>(null);
-const currentUserId = ref('');
+const selectedUser = ref<any | null>(null); // 存储详细信息，包括 stats
+// const currentUserId = ref(''); // 似乎未使用，可以移除
 const pageSize = ref(10);
 const currentPage = ref(1);
 const totalUsers = ref(0);
 
-// 用户统计数据（模拟）
-const userStats = reactive({
-  conversationCount: 25,
-  knowledgeBaseCount: 3,
-  lastActive: '2023-05-22 15:30:45'
-});
+// 用户统计数据（现在从 API 获取，可以移除或保留作为默认结构）
+// const userStats = reactive({ ... }); // 不再需要模拟数据
 
-// 过滤用户列表
-const filteredUsers = computed(() => {
-  let result = users.value;
-  
-  // 按类型筛选
-  if (userTypeFilter.value !== 'all') {
-    const isAdmin = userTypeFilter.value === 'admin';
-    result = result.filter(user => user.admin_sign === isAdmin);
-  }
-  
-  // 按搜索词过滤
-  if (searchUser.value) {
-    const searchLower = searchUser.value.toLowerCase();
-    result = result.filter(user =>
-      user.username.toLowerCase().includes(searchLower) || 
-      (user.email && user.email.toLowerCase().includes(searchLower))
-    );
-  }
-  
-  return result;
-});
-
-// 获取用户列表
+// 获取用户列表 - 已更新以使用 API 参数
 async function fetchUsers() {
   loading.value = true;
   try {
     const baseURL = import.meta.env.VITE_APP_BASE_URL;
-    const response = await getRequest<any>(baseURL + '/v1/api/mark/admin/users');
-    if (response.code === 200) {
-      users.value = response.data[0].map((user: any) => ({
-        ...user,
-        status: 'active' // 模拟状态数据
-      }));
-      totalUsers.value = users.value.length;
+    interface UserParams {
+      page: number;
+      pageSize: number;
+      search?: string;
+      type: string;
+      [key: string]: any; // 添加索引签名允许字符串键访问
+    }
+    
+    const params: UserParams = {
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      search: searchUser.value || undefined, // 如果为空则不传
+      type: userTypeFilter.value,
+      // sortBy: 'create_time', // 可选：添加排序
+      // sortOrder: 'desc'      // 可选：添加排序
+    };
+    // 清理 undefined 参数
+    Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
+
+    // 构建查询字符串
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      queryParams.append(key, String(value));
+    });
+
+    const response = await getRequest<any>(`${baseURL}/v1/api/mark/admin/users?${queryParams.toString()}`);
+    if (response.code === 200 && response.data) {
+      users.value = response.data.users || [];
+      totalUsers.value = response.data.total || 0;
     } else {
-      ElMessage.error('获取用户列表失败');
+      ElMessage.error(response.message || '获取用户列表失败');
+      users.value = [];
+      totalUsers.value = 0;
     }
   } catch (error) {
     console.error('获取用户列表出错:', error);
     ElMessage.error('获取用户列表出错');
+    users.value = [];
+    totalUsers.value = 0;
   } finally {
     loading.value = false;
   }
 }
 
-// 删除用户
+// 删除用户 - 已更新端点
 async function deleteUser(user: any) {
   loading.value = true;
   try {
     const baseURL = import.meta.env.VITE_APP_BASE_URL;
+    // 使用新的端点
     const response = await deleteRequest<any>(baseURL + `/v1/api/mark/admin/user/${user.username}`);
     if (response.code === 200) {
       ElMessage.success('用户删除成功');
-      if (userDetailDrawer.value) {
-        userDetailDrawer.value = false;
+      if (userDetailDrawer.value && selectedUser.value?.username === user.username) {
+        userDetailDrawer.value = false; // 如果删除的是当前查看的用户，关闭抽屉
       }
-      fetchUsers(); // 重新加载用户列表
+      // 刷新当前页数据
+      // 如果删除的是当前页最后一条，可能需要跳转到前一页
+      if (users.value.length === 1 && currentPage.value > 1) {
+        currentPage.value--;
+      }
+      fetchUsers();
     } else {
-      ElMessage.error('删除用户失败');
+      ElMessage.error(response.message || '删除用户失败');
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('删除用户出错:', error);
-    ElMessage.error('删除用户出错');
+    ElMessage.error(error.response?.data?.detail || '删除用户出错');
   } finally {
     loading.value = false;
   }
@@ -267,69 +277,118 @@ function confirmDeleteUser(user: any) {
   });
 }
 
-// 切换管理员权限
-async function toggleAdmin(user: any) {
+// 切换用户状态 - 新增函数
+async function updateUserStatus(user: any, newStatus: 'active' | 'disabled') {
   loading.value = true;
   try {
     const baseURL = import.meta.env.VITE_APP_BASE_URL;
-    const url = user.admin_sign 
-      ? `/v1/api/mark/admin/revoke_admin/${user.username}`
-      : `/v1/api/mark/admin/grant_admin/${user.username}`;
-    const response = await postRequest<any>(baseURL + url, {});
+    const url = `${baseURL}/v1/api/mark/admin/user/${user.username}/status`;
+    const response = await putRequest<any>(url, { status: newStatus });
+
     if (response.code === 200) {
-      ElMessage.success(user.admin_sign ? '管理员权限已撤销' : '管理员权限已授予');
-      
-      // 更新当前用户数据
-      if (selectedUser.value && selectedUser.value.username === user.username) {
-        selectedUser.value.admin_sign = !user.admin_sign;
-      }
-      
-      // 更新列表中的用户数据
+      ElMessage.success(`用户状态已更新为 ${newStatus === 'active' ? '活跃' : '禁用'}`);
+
+      // 更新本地数据
       const userIndex = users.value.findIndex(u => u.username === user.username);
       if (userIndex !== -1) {
-        users.value[userIndex].admin_sign = !user.admin_sign;
+        users.value[userIndex].status = newStatus;
       }
-      
-      // 强制刷新列表
-      users.value = [...users.value];
+      if (selectedUser.value && selectedUser.value.username === user.username) {
+        selectedUser.value.status = newStatus;
+      }
+       // 强制刷新列表 (如果直接修改 ref 数组项无效)
+       users.value = [...users.value];
+       if (selectedUser.value) selectedUser.value = {...selectedUser.value};
+
     } else {
-      ElMessage.error(user.admin_sign ? '撤销管理员权限失败' : '授予管理员权限失败');
+      ElMessage.error(response.message || '更新用户状态失败');
     }
-  } catch (error) {
-    console.error(user.admin_sign ? '撤销管理员权限出错:' : '授予管理员权限出错:', error);
-    ElMessage.error(user.admin_sign ? '撤销管理员权限出错' : '授予管理员权限出错');
+  } catch (error: any) {
+    console.error('更新用户状态出错:', error);
+    ElMessage.error(error.response?.data?.detail || '更新用户状态出错');
   } finally {
     loading.value = false;
   }
 }
 
-// 查看用户详情
-function viewUserDetail(user: any) {
-  selectedUser.value = {...user};
-  userDetailDrawer.value = true;
+// 触发切换用户状态
+function toggleUserStatus(user: any) {
+   const targetStatus = user.status === 'active' ? 'disabled' : 'active';
+   const actionText = targetStatus === 'active' ? '启用' : '禁用';
+   ElMessageBox.confirm(
+    `确定要${actionText}用户 "${user.username}" 吗?`,
+    `确认${actionText}`,
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+     updateUserStatus(user, targetStatus);
+  }).catch(() => {
+    ElMessage.info(`已取消${actionText}`);
+  });
 }
 
-// 处理行点击
+
+// 获取用户详细信息 - 新增函数
+async function fetchUserDetail(username: string) {
+  selectedUser.value = null; // 清空旧数据并显示加载状态
+  userDetailDrawer.value = true;
+  try {
+    const baseURL = import.meta.env.VITE_APP_BASE_URL;
+    const response = await getRequest<any>(`${baseURL}/v1/api/mark/admin/user/${username}/details`);
+    if (response.code === 200 && response.data) {
+      selectedUser.value = response.data;
+    } else {
+      ElMessage.error(response.message || '获取用户详情失败');
+      userDetailDrawer.value = false; // 获取失败则关闭抽屉
+    }
+  } catch (error: any) {
+    console.error('获取用户详情出错:', error);
+    ElMessage.error(error.response?.data?.detail || '获取用户详情出错');
+    userDetailDrawer.value = false; // 出错则关闭抽屉
+  }
+}
+
+// 查看用户详情 - 调用 fetchUserDetail
+function viewUserDetail(user: any) {
+  fetchUserDetail(user.username);
+}
+
+// 处理行点击 - 调用 fetchUserDetail
 function handleRowClick(row: any) {
-  viewUserDetail(row);
+  fetchUserDetail(row.username);
 }
 
 // 格式化日期
-function formatDate(date: string) {
-  if (!date) return '-';
-  return new Date(date).toLocaleString();
+function formatDate(dateString: string | null | undefined) {
+  if (!dateString) return '-';
+  try {
+    return new Date(dateString).toLocaleString();
+  } catch (e) {
+    return dateString; // 如果格式无效，返回原始字符串
+  }
 }
 
-// 重置搜索
+// 重置搜索和过滤
 function resetSearch() {
   searchUser.value = '';
   userTypeFilter.value = 'all';
+  currentPage.value = 1; // 重置到第一页
   fetchUsers();
+}
+
+// 处理筛选变化
+function handleFilterChange() {
+    currentPage.value = 1; // 筛选变化时重置到第一页
+    fetchUsers();
 }
 
 // 处理分页大小变化
 function handleSizeChange(size: number) {
   pageSize.value = size;
+  currentPage.value = 1; // 切换大小后回到第一页
   fetchUsers();
 }
 
@@ -448,11 +507,14 @@ onMounted(() => {
 
 .user-stats {
   margin-top: 24px;
+  display: grid; /* 使用 grid 布局 */
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* 响应式列 */
+  gap: 24px; /* 列间距 */
 }
 
 .stat-block {
-  margin-bottom: 24px;
-  
+  /* margin-bottom: 24px; */ /* 由 grid gap 控制间距 */
+
   h4 {
     margin: 0 0 16px;
     font-size: 16px;
@@ -466,6 +528,12 @@ onMounted(() => {
   gap: 12px;
   margin-top: 24px;
 }
+
+/* 确保 el-icon 在按钮中有正确的间距 */
+.el-button .el-icon {
+  margin-right: 4px;
+}
+
 
 @media (max-width: 768px) {
   .user-container {
@@ -490,6 +558,10 @@ onMounted(() => {
     flex-direction: column;
     align-items: center;
     text-align: center;
+  }
+  
+  .user-stats {
+    grid-template-columns: 1fr; /* 在小屏幕上堆叠 */
   }
 }
 </style>
