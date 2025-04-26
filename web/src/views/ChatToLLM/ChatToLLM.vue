@@ -595,6 +595,7 @@ onMounted(() => {
 /* 自定义滚动条 */
 .custom-scrollbar {
   scrollbar-width: thin;
+  overflow-y: scroll;
   scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05);
 }
 
