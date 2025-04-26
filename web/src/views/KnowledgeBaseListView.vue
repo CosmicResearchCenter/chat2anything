@@ -1,63 +1,64 @@
 <template>
-    <el-row :gutter="20">
+    <el-row :gutter="24" class="kb-list-container">
         <!-- Create new knowledge base card -->
-        <el-col :span="8" class="col-card">
-            <el-card class="new-base" shadow="hover" @click="openDialog">
+        <el-col :xs="24" :sm="12" :md="8" :lg="6" class="col-card">
+            <el-card class="new-base-card" shadow="never" @click="openDialog">
                 <div class="new-base-content">
-                    <el-icon :size="60">
-                        <Plus />
-                    </el-icon>
-                    <div class="title">创建知识库</div>
-                    <div class="sub-text">导入您的文本数据以增强 LLM 的上下文。</div>
+                    <el-icon class="add-icon" :size="40"><Plus /></el-icon>
+                    <div class="add-text">创建新知识库</div>
                 </div>
             </el-card>
         </el-col>
 
-        <!-- Dynamic cards for files -->
-        <el-col v-for="(file, index) in files" :key="index" :span="8" class="col-card">
-            <el-card class="box-card" shadow="hover" @click="goToKnowledgeBase(file.id)">
-                <div class="card-content">
-                    <el-icon :size="60">
-                        <Document />
-                    </el-icon>
-                    <div class="title">{{ file.name }}</div>
-                    <div class="details">{{ file.details }}</div>
+        <!-- Dynamic cards for knowledge bases -->
+        <el-col v-for="kb in files" :key="kb.id" :xs="24" :sm="12" :md="8" :lg="6" class="col-card">
+            <el-card class="kb-card" shadow="hover" @click="goToKnowledgeBase(kb.id)">
+                <div class="kb-card-header">
+                    <el-icon class="kb-icon" :size="30"><Document /></el-icon>
+                    <div class="kb-actions" @click.stop>
+                        <el-dropdown trigger="click">
+                            <span class="el-dropdown-link action-icon" @click.stop>
+                                <el-icon><MoreFilled /></el-icon>
+                            </span>
+                            <template #dropdown>
+                                <el-dropdown-menu>
+                                    <el-dropdown-item 
+                                        :icon="Delete" 
+                                        @click.stop="handleMenuCommand(kb)('delete')">
+                                        删除
+                                    </el-dropdown-item>
+                                </el-dropdown-menu>
+                            </template>
+                        </el-dropdown>
+                    </div>
                 </div>
-
-                <!-- Add @click.stop to the container and dropdown items to prevent event propagation -->
-                <div class="menu" @click.stop>
-                    <el-dropdown trigger="click">
-                        <span class="el-dropdown-link" @click.stop>
-                            <el-icon>
-                                <More />
-                            </el-icon>
-                        </span>
-                        <template #dropdown>
-                            <el-dropdown-menu>
-                                <!-- <el-dropdown-item -->
-                                    <!-- @click.stop="handleMenuCommand(file)('settings')">设置</el-dropdown-item> -->
-                                <el-dropdown-item @click.stop="handleMenuCommand(file)('delete')">删除</el-dropdown-item>
-                            </el-dropdown-menu>
-                        </template>
-                    </el-dropdown>
+                <div class="kb-card-body">
+                    <div class="kb-name">{{ kb.name }}</div>
+                    <div class="kb-details">{{ kb.details }}</div>
                 </div>
             </el-card>
         </el-col>
-        <el-dialog title="设置知识库名称" v-model="dialogVisible">
-            <el-input v-model="knowledgeBaseName" placeholder="请输入知识库名称"></el-input>
-            <span slot="footer" class="dialog-footer">
+    </el-row>
+
+    <!-- Dialog remains the same -->
+    <el-dialog title="设置知识库名称" v-model="dialogVisible" width="300px">
+        <el-input v-model="knowledgeBaseName" placeholder="请输入知识库名称" clearable></el-input>
+        <template #footer>
+            <span class="dialog-footer">
                 <el-button @click="dialogVisible = false">取消</el-button>
                 <el-button type="primary" @click="createKnowledgeBase" :loading="isCreating">确定</el-button>
             </span>
-        </el-dialog>
-    </el-row>
+        </template>
+    </el-dialog>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Plus, Document, More } from '@element-plus/icons-vue';
+// Import MoreFilled and Delete icons
+import { Plus, Document, MoreFilled, Delete } from '@element-plus/icons-vue'; 
 import { getRequest, postRequest, deleteRequest } from '@/utils/http';
+import { ElMessage, ElMessageBox } from 'element-plus'; // Import ElMessageBox
 
 interface FileData {
     id: string;
@@ -66,69 +67,72 @@ interface FileData {
 }
 
 export default defineComponent({
-    components: { Plus, Document, More },
+    // Add MoreFilled and Delete to components
+    components: { Plus, Document, MoreFilled, Delete }, 
     setup() {
         const router = useRouter();
 
         const files = ref<FileData[]>([]);
-        const dialogVisible = ref(false); // 控制弹出框的显示与隐藏
-        const knowledgeBaseName = ref(""); // 存储知识库名称
-        const isCreating = ref(false); // 添加创建状态跟踪变量
+        const dialogVisible = ref(false); 
+        const knowledgeBaseName = ref(""); 
+        const isCreating = ref(false); 
 
-        // 打开弹出框
         const openDialog = () => {
-            console.log('打开弹出框');
+            knowledgeBaseName.value = ""; // Clear previous input
             dialogVisible.value = true;
         };
 
-        // 初始化时获取知识库数据
         const fetchKnowledgeBases = async () => {
             try {
                 const baseURL = import.meta.env.VITE_APP_BASE_URL;
                 const response: any = await getRequest(baseURL+'/v1/api/mark/knowledgebase/');
                 if (response.code === 200) {
-                    files.value = [];  // 清空files
-                    response.data.forEach((kb: any) => {
-                        files.value.push({
-                            id: kb.id,
-                            name: kb.knowledgeBaseName,
-                            details: String(kb.docs_num)+'个文档 | '+String(kb.related_conversations)+'个关联对话' // 示例细节
-                        });
-                    });
+                    files.value = response.data.map((kb: any) => ({
+                        id: kb.id,
+                        name: kb.knowledgeBaseName,
+                        // Ensure details are strings
+                        details: `${kb.docs_num || 0}个文档 | ${kb.related_conversations || 0}个关联对话` 
+                    }));
                 } else {
-                    console.error('获取知识库数据失败:', response.message);
+                    ElMessage.error('获取知识库列表失败: ' + response.message);
                 }
             } catch (error) {
                 console.error('请求失败:', error);
+                ElMessage.error('请求知识库列表时出错');
             }
         };
 
-        // 初始化时加载知识库数据
         onMounted(fetchKnowledgeBases);
 
-        // 创建知识库
         const createKnowledgeBase = async () => {
-            if (isCreating.value) return; // 防止重复提交
+            if (!knowledgeBaseName.value.trim()) {
+                ElMessage.warning('请输入知识库名称');
+                return;
+            }
+            if (isCreating.value) return; 
             isCreating.value = true;
             
             try {
                 const baseURL = import.meta.env.VITE_APP_BASE_URL;
                 const response: any = await postRequest(baseURL+'/v1/api/mark/knowledgebase/', {
-                    base_name: knowledgeBaseName.value || "default"
+                    base_name: knowledgeBaseName.value.trim() // Use trimmed value
                 });
 
                 if (response.code === 200 && response.data.length > 0) {
-                    const id = response.data[0].knowledgeBase_id;
-                    router.push(`/manager/${id}/create`);
+                    const newKb = response.data[0];
+                    ElMessage.success(`知识库 "${newKb.knowledgeBaseName}" 创建成功`);
                     dialogVisible.value = false;
-                    knowledgeBaseName.value = "";
+                    await fetchKnowledgeBases(); // Refresh list after creation
+                    // Optionally navigate to the new KB's creation page immediately
+                    // router.push(`/manager/${newKb.knowledgeBase_id}/create`); 
                 } else {
-                    console.error('创建知识库失败:', response.message);
+                     ElMessage.error('创建知识库失败: ' + response.message);
                 }
             } catch (error) {
                 console.error('请求创建知识库失败:', error);
+                ElMessage.error('请求创建知识库时出错');
             } finally {
-                isCreating.value = false; // 无论成功或失败，都结束加载状态
+                isCreating.value = false; 
             }
         };
 
@@ -136,25 +140,39 @@ export default defineComponent({
             router.push(`/manager/${id}`);
         };
 
-        const handleMenuCommand = (file: FileData) => async (command: string) => {
-            if (command === 'settings') {
-                router.push(`/manager/${file.id}/settings`);
-            } else if (command === 'delete') {
-                try {
-                    const baseURL = import.meta.env.VITE_APP_BASE_URL;
-                    const response: any = await deleteRequest(baseURL+`/v1/api/mark/knowledgebase/${file.id}`);
-                    if (response.code === 200) {
-                        const index = files.value.findIndex(f => f.id === file.id);
-                        if (index !== -1) files.value.splice(index, 1);
-                        console.log('删除成功:', response.message);
-                        await fetchKnowledgeBases();
-                    } else {
-                        console.error('删除失败:', response.message);
+        // Updated handleMenuCommand to use ElMessageBox for confirmation
+        const handleMenuCommand = (kb: FileData) => async (command: string) => {
+            if (command === 'delete') {
+                ElMessageBox.confirm(
+                    `确定要删除知识库 "${kb.name}" 吗？此操作不可恢复。`,
+                    '确认删除',
+                    {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning',
                     }
-                } catch (error) {
-                    console.error('删除请求失败:', error);
-                }
+                ).then(async () => {
+                    // User confirmed deletion
+                    try {
+                        const baseURL = import.meta.env.VITE_APP_BASE_URL;
+                        const response: any = await deleteRequest(baseURL+`/v1/api/mark/knowledgebase/${kb.id}`);
+                        if (response.code === 200) {
+                            ElMessage.success(`知识库 "${kb.name}" 已删除`);
+                            await fetchKnowledgeBases(); // Refresh list
+                        } else {
+                            ElMessage.error('删除失败: ' + response.message);
+                        }
+                    } catch (error) {
+                        console.error('删除请求失败:', error);
+                        ElMessage.error('删除知识库时出错');
+                    }
+                }).catch(() => {
+                    // User cancelled
+                    ElMessage.info('已取消删除');
+                });
             }
+            // Add other commands like 'settings' here if needed in the future
+            // else if (command === 'settings') { ... }
         };
 
         return {
@@ -165,83 +183,158 @@ export default defineComponent({
             createKnowledgeBase,
             goToKnowledgeBase,
             handleMenuCommand,
-            isCreating // 将状态暴露给模板
+            isCreating,
+            // Expose icons to template
+            Delete 
         };
     }
 });
 </script>
 
 <style scoped>
-.box-card,
-.new-base {
-    width: 100%;
-    height: 200px;
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    background: #8fbaf3;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
-    color: #000000;
-    transition: transform 0.3s, box-shadow 0.3s;
+.kb-list-container {
+    padding: 24px;
+    background-color: #f5f7fa; /* Match background */
+    min-height: calc(100vh - 60px); /* Adjust based on nav height */
 }
 
-.box-card:hover,
-.new-base:hover {
-    transform: scale(1.05);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+.col-card {
+    margin-bottom: 24px;
+}
+
+/* Base card style */
+.el-card {
+    border-radius: 12px;
+    border: 1px solid #e4e7ed;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    height: 160px; /* Fixed height for consistency */
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+}
+
+.el-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* "Create New" Card Style */
+.new-base-card {
+    border: 2px dashed #0245a3; /* Use theme color for dashed border */
+    background-color: #f8fcff; /* Lighter background */
+    justify-content: center;
+    align-items: center;
+}
+
+.new-base-card:hover {
+    border-color: #8fbaf3; /* Lighter blue on hover */
+    background-color: #ffffff;
 }
 
 .new-base-content {
     text-align: center;
+    color: #0245a3; /* Theme color */
 }
 
-.title {
-    font-size: 18px;
-    font-weight: bold;
-    margin-top: 10px;
+.add-icon {
+    margin-bottom: 10px;
+    transition: transform 0.3s ease;
 }
 
-.sub-text {
-    font-size: 12px;
-    color: #000000;
-    margin-top: 10px;
+.new-base-card:hover .add-icon {
+    transform: scale(1.1);
 }
 
-.details {
-    font-size: 14px;
-    color: #000000;
-    margin-top: 5px;
+.add-text {
+    font-size: 16px;
+    font-weight: 500;
 }
 
-.col-card {
-    margin-top: 20px;
-    margin-bottom: 20px;
+/* Knowledge Base Card Style */
+.kb-card {
+    position: relative;
+    padding: 18px;
+    box-sizing: border-box;
 }
 
-.card-content {
-    text-align: center;
-    font-size: 15px;
+.kb-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start; /* Align items to the top */
+    margin-bottom: 15px;
 }
 
-.menu {
+.kb-icon {
+    color: #0245a3; /* Theme color */
+    background-color: rgba(143, 186, 243, 0.15); /* Light blue background */
+    border-radius: 8px;
+    padding: 6px;
+}
+
+.kb-actions {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
+    top: 15px;
+    right: 15px;
 }
 
-.menu-button {
-    padding: 0;
+.action-icon {
+    color: #909399; /* Grey color for icon */
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* 调整卡片在小屏幕下的排列方式 */
+.action-icon:hover {
+    background-color: #f0f0f0;
+    color: #0245a3; /* Theme color on hover */
+}
+
+.kb-card-body {
+    margin-top: auto; /* Push body content towards the bottom */
+}
+
+.kb-name {
+    font-size: 17px;
+    font-weight: 600;
+    color: #303133; /* Darker text for name */
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Add ellipsis for long names */
+}
+
+.kb-details {
+    font-size: 13px;
+    color: #606266; /* Grey text for details */
+    line-height: 1.4;
+}
+
+/* Dialog style */
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 10px; /* Add some space above buttons */
+}
+
+/* Responsive adjustments */
 @media screen and (max-width: 768px) {
+  .kb-list-container {
+    padding: 16px;
+  }
   .col-card {
-    width: 100%;
-    max-width: none;
+     /* Make cards full width on smaller screens if needed */
+     /* :xs="24" already handles this */
+  }
+  .el-card {
+      height: 150px; /* Slightly smaller height */
+  }
+  .kb-name {
+      font-size: 16px;
+  }
+  .kb-details {
+      font-size: 12px;
   }
 }
 </style>
