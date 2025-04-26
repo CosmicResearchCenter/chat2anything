@@ -11,7 +11,7 @@ from config.config_info import settings
 from core.database.mysql_client import MysqlClient
 from core.database.models import UserInfo
 from core.utils.utils import get_is_admin
-
+from typing import Optional
 from services.admin.admin_service  import AdminService
 from .admin import (ResponseGenral,
                     DeleteUserConversationRequest,
@@ -22,7 +22,10 @@ from .admin import (ResponseGenral,
                     UserGrowthRequest,
                     ConversationTrendRequest,
                     RecentActivitiesRequest,
-                    ActiveUsersRequest
+                    ActiveUsersRequest,
+                    UserListResponse,      # 导入
+                    UserDetailsResponse,   # 导入
+                    UpdateUserStatusRequest # 导入
                     )
 router = APIRouter()
 
@@ -38,15 +41,84 @@ async def get_system_info(username: str = Depends(get_is_admin)):
         data=[system_info]
     ) 
 
-# 获取用户
-@router.get("/users", response_model=ResponseGenral)
-async def get_users_conversation(username: str = Depends(get_is_admin)):
+# 获取用户 (旧接口，保留或移除)
+# @router.get("/users_old", response_model=ResponseGenral)
+# async def get_users_conversation(username: str = Depends(get_is_admin)):
+#     admin_service = AdminService()
+#     users = admin_service.get_all_users()
+#     return ResponseGenral(
+#         code=200,
+#         message="返回用户对话信息",
+#         data=[users] # 注意旧接口返回格式
+#     )
+
+# 获取用户列表（增强版）
+@router.get("/users", response_model=UserListResponse)
+async def get_users_paginated(
+    page: int = Query(1, ge=1),
+    pageSize: int = Query(10, ge=1, le=100), # 添加最大值限制
+    search: Optional[str] = Query(None),
+    type: str = Query('all', enum=['all', 'admin', 'user']),
+    sortBy: Optional[str] = Query(None, description="Sort by field like 'username', 'create_time'"),
+    sortOrder: str = Query('desc', enum=['asc', 'desc']),
+    username: str = Depends(get_is_admin) # 权限验证
+):
     admin_service = AdminService()
-    users = admin_service.get_all_users()
+    users, total = admin_service.get_users_paginated(
+        page=page,
+        pageSize=pageSize,
+        search=search,
+        user_type=type,
+        sortBy=sortBy,
+        sortOrder=sortOrder
+    )
+    return UserListResponse(
+        code=200,
+        message="获取用户列表成功",
+        data={"users": users, "total": total}
+    )
+
+# 获取用户详细信息及统计
+@router.get("/user/{target_username}/details", response_model=UserDetailsResponse)
+async def get_user_details(target_username: str, username: str = Depends(get_is_admin)):
+    admin_service = AdminService()
+    details = admin_service.get_user_details(target_username)
+    if not details:
+        raise HTTPException(status_code=404, detail="User not found")
+    return UserDetailsResponse(
+        code=200,
+        message="获取用户详情成功",
+        data=details
+    )
+
+# 更新用户状态
+@router.put("/user/{target_username}/status", response_model=ResponseGenral)
+async def update_user_status(
+    target_username: str,
+    request: UpdateUserStatusRequest,
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    self_username = username.data[0]['username'] # 从 Depends 获取操作者用户名
+    success = admin_service.update_user_status(target_username, request.status, self_username)
+    if not success:
+        # 根据失败原因返回更具体的错误信息
+        user_info = MysqlClient().db.query(UserInfo).filter(UserInfo.username == target_username).first()
+        if not user_info:
+             raise HTTPException(status_code=404, detail="User not found")
+        if target_username == 'admin' and request.status == 'disabled':
+             raise HTTPException(status_code=400, detail="Cannot disable the admin user")
+        if user_info.is_admin and self_username != 'admin':
+             raise HTTPException(status_code=403, detail="Permission denied to modify admin status")
+        if request.status not in ['active', 'disabled']:
+             raise HTTPException(status_code=400, detail="Invalid status value")
+
+        raise HTTPException(status_code=500, detail="Failed to update user status") # 其他未知错误
+
     return ResponseGenral(
         code=200,
-        message="返回用户对话信息",
-        data=[users]
+        message="用户状态更新成功",
+        data={}
     )
 
 # 根据用户名获取对话列表
@@ -94,22 +166,27 @@ async def get_knowledge_base(username:str,knowledge_base_id: str, username_s: st
         data=[knowledge_base]
     )
     
-# 删除用户
-@router.delete("/user/{username}", response_model=ResponseGenral)
-async def delete_user(username:str, username_s: str = Depends(get_is_admin)):
+# 删除用户 (路径保持一致，使用服务层更新后的逻辑)
+@router.delete("/user/{target_username}", response_model=ResponseGenral)
+async def delete_user(target_username:str, username_s: str = Depends(get_is_admin)):
     self_username = username_s.data[0]['username']
     admin_service = AdminService()
-    status =  admin_service.delete_user(username,self_username)
+    status =  admin_service.delete_user(target_username, self_username)
     if status == False:
-        return ResponseGenral(
-            code=400,
-            message="删除用户失败,权限不够",
-            data=[]
-        )
+        # 根据失败原因返回更具体的错误信息
+        if target_username == 'admin':
+            raise HTTPException(status_code=403, detail="Cannot delete the admin user")
+        user_info = MysqlClient().db.query(UserInfo).filter(UserInfo.username == target_username).first()
+        if user_info and user_info.is_admin and self_username != 'admin':
+             raise HTTPException(status_code=403, detail="Permission denied to delete another admin")
+        if not user_info:
+             raise HTTPException(status_code=404, detail="User not found")
+
+        raise HTTPException(status_code=400, detail="删除用户失败") # 其他原因
     return ResponseGenral(
         code=200,
         message="删除用户成功",
-        data=[]
+        data={} # 返回空 data
     )
     
 # 删除用户对话
