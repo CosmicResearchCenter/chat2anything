@@ -48,17 +48,30 @@ async def login(loginRequest: LoginRequest):
     try:
         username = loginRequest.username
         password = loginRequest.password
-        
-        user = mysql_client.db.query(UserInfo).filter(UserInfo.username == username).first()
-        if not user:
+
+        # Workaround: Explicitly select needed columns to avoid 'status' column error
+        # Ideally, ensure the UserInfo model and database schema match.
+        user_data = mysql_client.db.query(
+            UserInfo.username,
+            UserInfo.password,
+            UserInfo.delete_sign
+        ).filter(UserInfo.username == username).first()
+
+        if not user_data:
             raise HTTPException(status_code=400, detail="Incorrect username or password")
-        if not verify_password(password, user.password):
+
+        fetched_username, hashed_password, delete_sign = user_data
+
+        if not verify_password(password, hashed_password):
             raise HTTPException(status_code=400, detail="Incorrect username or password")
-        if user.delete_sign == True:
+        # Use the fetched delete_sign value
+        if delete_sign == True:
             raise HTTPException(status_code=400, detail="Account disabled")
+
         access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        # Use the fetched username for the token
         access_token = create_access_token(
-            data={"sub": user.username}, expires_delta=access_token_expires
+            data={"sub": fetched_username}, expires_delta=access_token_expires
         )
 
         return LoginResponse(code=200, data=AccessToken(access_token=access_token,token_type="bearer"), message="Login Successful")
