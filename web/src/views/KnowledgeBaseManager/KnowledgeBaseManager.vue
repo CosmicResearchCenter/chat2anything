@@ -80,9 +80,10 @@
                                 <template #dropdown>
                                     <el-dropdown-menu>
                                         <el-dropdown-item @click="openRenameDialog(scope.row.docId)">重命名</el-dropdown-item>
+                                        <el-dropdown-item @click="openReindexDialog(scope.row.docId)">重新索引</el-dropdown-item>
                                         <!-- <el-dropdown-item>分段设置</el-dropdown-item> -->
                                         <!-- <el-dropdown-item>归档</el-dropdown-item> -->
-                                        <el-dropdown-item @click="deleteFile">删除</el-dropdown-item>
+                                        <el-dropdown-item @click="deleteFile(scope.row.docId)">删除</el-dropdown-item>
                                     </el-dropdown-menu>
                                 </template>
                             </el-dropdown>
@@ -144,6 +145,49 @@
             <span class="dialog-footer">
                 <el-button @click="renameDialogVisible = false">取消</el-button>
                 <el-button type="primary" @click="confirmRename">确定</el-button>
+            </span>
+        </template>
+    </el-dialog>
+
+    <!-- Reindex Dialog -->
+    <el-dialog
+        v-model="reindexDialogVisible"
+        title="重新索引文档"
+        width="40%"
+        :close-on-click-modal="false"
+    >
+        <el-form label-width="120px">
+            <el-form-item label="分割模型">
+                <el-radio-group v-model="reindexSplitterModel">
+                    <el-radio :label="0">LLMSplitter</el-radio>
+                    <el-radio :label="1">TextSplitter</el-radio>
+                </el-radio-group>
+            </el-form-item>
+
+            <!-- LLMSplitter Args -->
+            <div v-if="reindexSplitterModel === 0">
+                <el-form-item label="窗口大小">
+                    <el-input v-model="reindexWindowSize" placeholder="例如: 100"></el-input>
+                </el-form-item>
+                <el-form-item label="步长">
+                    <el-input v-model="reindexStepSize" placeholder="例如: 50"></el-input>
+                </el-form-item>
+            </div>
+
+            <!-- TextSplitter Args -->
+            <div v-if="reindexSplitterModel === 1">
+                <el-form-item label="文本块大小">
+                    <el-input v-model="reindexChunkSize" placeholder="例如: 1000"></el-input>
+                </el-form-item>
+                <el-form-item label="重叠大小">
+                    <el-input v-model="reindexChunkOverlap" placeholder="例如: 200"></el-input>
+                </el-form-item>
+            </div>
+        </el-form>
+        <template #footer>
+            <span class="dialog-footer">
+                <el-button @click="reindexDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="confirmReindex">确定</el-button>
             </span>
         </template>
     </el-dialog>
@@ -274,38 +318,24 @@ export default defineComponent({
                 ElMessage.error("保存设置时出错");
             }
         };
-        const deleteFile = async () => {
+        const deleteFile = async (docId: string) => { // Accept docId as parameter
             const baseId = route.params.base_id as string;
             try {
                 const baseURL = import.meta.env.VITE_APP_BASE_URL;
-                const response: any = await deleteRequest(baseURL+`/v1/api/mark/knowledgebase/${baseId}/doc/${files.value[0].docId}`);
+                // Use the passed docId
+                const response: any = await deleteRequest(baseURL+`/v1/api/mark/knowledgebase/${baseId}/doc/${docId}`);
                 if (response.code === 200) {
                     ElMessage.success("文件已删除");
+                    fetchFiles(); // Refresh file list after deletion
                 } else {
-                    ElMessage.error("删除文件失败");
+                    ElMessage.error("删除文件失败: " + response.message);
                 }
             } catch (error) {
                 console.error(error);
                 ElMessage.error("删除文件时出错");
             }
         };
-        const renameDoc = async () => {
-            const baseId = route.params.base_id as string;
-            try {
-                const baseURL = import.meta.env.VITE_APP_BASE_URL;
-                const response: any = await postRequest(baseURL+`/v1/api/mark/knowledgebase/${baseId}/doc/${files.value[0].docId}/rename`, {
-                    new_name: "new name"
-                });
-                if (response.code === 200) {
-                    ElMessage.success("文件已重命名");
-                } else {
-                    ElMessage.error("重命名文件失败");
-                }
-            } catch (error) {
-                console.error(error);
-                ElMessage.error("重命名文件时出错");
-            }
-        };
+
         const isCollapse = ref(false);
         
         const toggleCollapse = () => {
@@ -314,11 +344,19 @@ export default defineComponent({
 
         const renameDialogVisible = ref(false);
         const newDocName = ref('');
-        const currentDocId = ref('');
+        const currentDocId = ref(''); // Used for rename
+
+        // Refs for Reindex Dialog
+        const reindexDialogVisible = ref(false);
+        const currentReindexDocId = ref(''); // Used for reindex
+        const reindexSplitterModel = ref(0); // Default to LLMSplitter
+        const reindexWindowSize = ref('2000');
+        const reindexStepSize = ref('1500');
+        const reindexChunkSize = ref('500');
+        const reindexChunkOverlap = ref('100');
 
         const openRenameDialog = (docId: string) => {
-            currentDocId.value = docId;
-            // 获取当前文档的名称作为默认值
+            currentDocId.value = docId; // Use currentDocId for rename
             const currentDoc = files.value.find(file => file.docId === docId);
             newDocName.value = currentDoc ? currentDoc.name : '';
             renameDialogVisible.value = true;
@@ -328,17 +366,70 @@ export default defineComponent({
             const baseId = route.params.base_id as string;
             try {
                 const baseURL = import.meta.env.VITE_APP_BASE_URL;
+                // Use currentDocId for rename
                 const response: any = await putRequest(baseURL+`/v1/api/mark/knowledgebase/${baseId}/doc/${currentDocId.value}/rename?new_name=${newDocName.value}`,{});
                 if (response.code === 200) {
                     ElMessage.success("文件已重命名");
                     renameDialogVisible.value = false;
                     fetchFiles();
                 } else {
-                    ElMessage.error("重命名文件失败");
+                    ElMessage.error("重命名文件失败: " + response.message);
                 }
             } catch (error) {
                 console.error(error);
                 ElMessage.error("重命名文件时出错");
+            }
+        };
+
+        // Reindex related methods
+        const openReindexDialog = (docId: string) => {
+            currentReindexDocId.value = docId; // Store the docId for reindexing
+            // Reset to defaults when opening
+            reindexSplitterModel.value = 0;
+            reindexWindowSize.value = '100';
+            reindexStepSize.value = '50';
+            reindexChunkSize.value = '1000';
+            reindexChunkOverlap.value = '200';
+            reindexDialogVisible.value = true;
+        };
+
+        const confirmReindex = async () => {
+            const baseId = route.params.base_id as string;
+            let splitter_args = {};
+            if (reindexSplitterModel.value === 0) {
+                splitter_args = {
+                    window_size: reindexWindowSize.value,
+                    step_size: reindexStepSize.value
+                };
+            } else {
+                splitter_args = {
+                    chunk_size: reindexChunkSize.value,
+                    chunk_overlap: reindexChunkOverlap.value
+                };
+            }
+
+            const requestBody = {
+                splitter_model: reindexSplitterModel.value,
+                splitter_args: splitter_args
+            };
+
+            try {
+                const baseURL = import.meta.env.VITE_APP_BASE_URL;
+                const response: any = await postRequest(
+                    baseURL + `/v1/api/mark/knowledgebase/${baseId}/reindex/${currentReindexDocId.value}`,
+                    requestBody
+                );
+                if (response.code === 200) {
+                    ElMessage.success(response.message || "开始重新索引");
+                    reindexDialogVisible.value = false;
+                    // Refresh file list to show updated status (might show '未索引' or '索引中')
+                    fetchFiles();
+                } else {
+                    ElMessage.error("重新索引失败: " + response.message);
+                }
+            } catch (error) {
+                console.error(error);
+                ElMessage.error("重新索引时出错");
             }
         };
 
@@ -386,12 +477,20 @@ export default defineComponent({
             get_kb_config,
             isCollapse,
             toggleCollapse,
-            deleteFile,
-            renameDoc,
+            deleteFile, // Ensure deleteFile is returned
             renameDialogVisible,
             newDocName,
             openRenameDialog,
             confirmRename,
+            // Reindex properties and methods
+            reindexDialogVisible,
+            reindexSplitterModel,
+            reindexWindowSize,
+            reindexStepSize,
+            reindexChunkSize,
+            reindexChunkOverlap,
+            openReindexDialog,
+            confirmReindex,
             togglePublicStatus,
             isAdmin // 将isAdmin添加到返回对象
         };
