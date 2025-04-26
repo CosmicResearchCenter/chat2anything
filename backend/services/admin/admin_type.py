@@ -75,6 +75,32 @@ class Activity(BaseModel):
     username: str
     time: str
 
+class UserListItem(BaseModel):
+    username: str
+    email: Optional[str] = None
+    create_time: Optional[datetime] = None
+    admin_sign: bool
+    status: Optional[str] = None # 修改这里，允许 None
+
+    class Config:
+        orm_mode = True # 允许从 ORM 对象创建模型实例
+        json_encoders = {
+            datetime: lambda dt: dt.isoformat() if dt else None
+        }
+
+class UserStats(BaseModel):
+    conversationCount: int
+    knowledgeBaseCount: int
+    lastActive: Optional[datetime] = None
+
+    class Config:
+        json_encoders = {
+            datetime: lambda dt: dt.isoformat() if dt else None
+        }
+
+class UserDetails(UserListItem):
+    stats: UserStats
+
 class ActiveUsersStats(BaseModel):
     active_users: int
     growth_rate: float

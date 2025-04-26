@@ -13,12 +13,17 @@ from .admin_type import (SystemInfo,
                         SystemResources,
                         TrendData,
                         Activity,
-                        ActiveUsersStats
+                        ActiveUsersStats,
+                        UserListItem, # 导入
+                        UserDetails,  # 导入
+                        UserStats     # 导入
                          )
 import psutil
-from typing import List,Tuple
+from typing import List,Tuple, Optional
 from datetime import datetime, timedelta
 import calendar
+from sqlalchemy import or_, desc, asc, func # 导入 or_, desc, asc, func
+
 class AdminService:
     def __init__(self):
         pass
@@ -47,7 +52,142 @@ class AdminService:
                 admin_sign=user.is_admin
             ))
         return user_list
-    
+
+    # 获取用户列表（增强版）
+    def get_users_paginated(
+        self,
+        page: int = 1,
+        pageSize: int = 10,
+        search: Optional[str] = None,
+        user_type: str = 'all', # 'all', 'admin', 'user'
+        sortBy: Optional[str] = None,
+        sortOrder: str = 'asc'
+    ) -> Tuple[List[UserListItem], int]:
+        mysql_client = MysqlClient()
+        query = mysql_client.db.query(UserInfo)
+
+        # 过滤已删除用户
+        query = query.filter(UserInfo.delete_sign == False)
+
+        # 搜索
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                or_(UserInfo.username.like(search_term), UserInfo.email.like(search_term))
+            )
+
+        # 用户类型过滤
+        if user_type == 'admin':
+            query = query.filter(UserInfo.is_admin == True)
+        elif user_type == 'user':
+            query = query.filter(UserInfo.is_admin == False)
+
+        # 排序
+        if sortBy:
+            column = getattr(UserInfo, sortBy, None)
+            if column:
+                if sortOrder == 'desc':
+                    query = query.order_by(desc(column))
+                else:
+                    query = query.order_by(asc(column))
+            else: # 默认按创建时间排序
+                 query = query.order_by(desc(UserInfo.create_time))
+        else: # 默认按创建时间排序
+            query = query.order_by(desc(UserInfo.create_time))
+
+
+        # 获取总数
+        total = query.count()
+
+        # 分页
+        offset = (page - 1) * pageSize
+        users = query.offset(offset).limit(pageSize).all()
+
+        # 转换 Pydantic 模型
+        user_list = [
+            UserListItem(
+                username=user.username,
+                email=user.email,
+                create_time=user.create_time,
+                admin_sign=user.is_admin,
+                status=user.status
+            ) for user in users
+        ]
+
+        return user_list, total
+
+    # 获取用户详细信息及统计
+    def get_user_details(self, username: str) -> Optional[UserDetails]:
+        mysql_client = MysqlClient()
+        user = mysql_client.db.query(UserInfo).filter(
+            UserInfo.username == username,
+            UserInfo.delete_sign == False
+        ).first()
+
+        if not user:
+            return None
+
+        # 统计对话数
+        conversation_count = mysql_client.db.query(Conversation).filter(
+            Conversation.username == username,
+            Conversation.delete_sign == False # 仅统计未删除的对话
+        ).count()
+
+        # 统计知识库数
+        knowledge_base_count = mysql_client.db.query(KnowledgeBase).filter(
+            KnowledgeBase.created_by == username,
+            KnowledgeBase.delete_sign == False # 仅统计未删除的知识库
+        ).count()
+
+        # 获取最后活跃时间 (基于 Chat_Messages)
+        last_active_time = mysql_client.db.query(func.max(Chat_Messages.timeStamp)).filter(
+            Chat_Messages.username == username
+        ).scalar()
+
+        user_stats = UserStats(
+            conversationCount=conversation_count,
+            knowledgeBaseCount=knowledge_base_count,
+            lastActive=last_active_time
+        )
+
+        user_details = UserDetails(
+            username=user.username,
+            email=user.email,
+            create_time=user.create_time,
+            admin_sign=user.is_admin,
+            status=user.status,
+            stats=user_stats
+        )
+
+        return user_details
+
+    # 更新用户状态
+    def update_user_status(self, username: str, status: str, username_s: str) -> bool:
+        mysql_client = MysqlClient()
+        user = mysql_client.db.query(UserInfo).filter(
+            UserInfo.username == username
+        ).first()
+
+        if not user:
+            return False # 用户不存在
+
+        # 防止非 admin 用户修改 admin 用户的状态
+        if user.is_admin and username_s != 'admin':
+             return False # 权限不足
+
+        # 防止修改 admin 用户的状态为 disabled
+        if user.username == 'admin' and status == 'disabled':
+            return False # 不能禁用 admin 用户
+
+        if status not in ['active', 'disabled']:
+            return False # 无效状态
+
+        user.status = status
+        user.update_time = datetime.now()
+        mysql_client.db.commit()
+        mysql_client.db.refresh(user)
+        return True
+
     # 根据用户对话列表
     def get_user_conversation(self,username:str,s_username:str)->List[Conversation_Collection]:
         mysql_client = MysqlClient()
@@ -277,26 +417,32 @@ class AdminService:
         
         return True
     
-    # 删除用户
+    # 删除用户 (修改为软删除，更新 delete_sign 和 status)
     def delete_user(self,username:str,username_s:str)->bool:
         mysql_client = MysqlClient()
-        # 不能删除管理员
-        
-        user = mysql_client.db.query(UserInfo).filter(
-            UserInfo.username == username
-        ).first()
-        if user.is_admin == True and username_s != 'admin':
+        # 不能删除 admin 用户
+        if username == 'admin':
             return False
-        # 删除用户
+
         user = mysql_client.db.query(UserInfo).filter(
             UserInfo.username == username
         ).first()
-        
+
+        if not user:
+            return False # 用户不存在
+
+        # 不能删除其他管理员，除非操作者是 admin
+        if user.is_admin == True and username_s != 'admin':
+            return False # 权限不足
+
+        # 软删除用户
         user.delete_sign = True
-        
+        user.status = 'disabled' # 同时禁用
+        user.update_time = datetime.now()
+
         mysql_client.db.commit()
         mysql_client.db.refresh(user)
-        
+
         return True
     
     # 授予用户管理员权限
