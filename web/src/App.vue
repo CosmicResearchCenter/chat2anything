@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import { ChatDotRound, Folder, Setting, User } from '@element-plus/icons-vue'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
 // 管理员状态响应式变量
 const isAdmin = ref(false)
+const route = useRoute()
 
 // 检查用户是否为管理员
 async function checkIsAdmin() {
@@ -34,6 +36,14 @@ async function checkIsAdmin() {
 onMounted(async () => {
   await checkIsAdmin()
 })
+
+// 监听路由变化，重新检查管理员状态
+watch(
+  () => route.path,
+  async () => {
+    await checkIsAdmin()
+  }
+)
 </script>
 
 <template>
