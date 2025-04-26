@@ -128,6 +128,20 @@ class KBase(MysqlClient):
         self.db.refresh(doc)
         
         return GenericResponse(message="Document deleted successfully", code=200,data=[])
+    # 删除es\milvus文档
+    @check_kb_owner_decorator
+    def delete_document_es_mi(self,base_id:str,username:str, doc_id:str)->GenericResponse:
+        doc = self.db.query(DocInfo).filter(DocInfo.save_id == doc_id).first()
+        if not doc:
+            return GenericResponse(message="Document not found", code=404,data=[])        
+        milvus_client = MilvusCollectionManager()
+        milvus_client.delete_by_knowledge_doc_id(base_id,doc_id)
+
+        es_client = ElasticClient()
+        es_client.delete_by_knowledge_doc_id(base_id,doc_id)
+        
+        return GenericResponse(message="Document deleted successfully", code=200,data=[])
+    
     def _get_docs_save_path(self, base_id:int)->Path:
         from config.config_info import settings
         save_path_p = Path(settings.DOCS_PATH)/ base_id
