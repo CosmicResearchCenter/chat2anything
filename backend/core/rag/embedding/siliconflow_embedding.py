@@ -5,10 +5,10 @@ from config.config_info import settings
 
 class SiliconFlowEmbedding(Embedding):
     def __init__(self, 
-                 base_url: str = getattr(settings, 'SILICONFLOW_BASE_URL', 'https://api.siliconflow.cn'),
-                 api_key: str = getattr(settings, 'SILICONFLOW_API_KEY', ''),
-                 model: str = getattr(settings, 'SILICONFLOW_EMBEDDING_MODEL', 'BAAI/bge-large-zh-v1.5'),
-                 target_dim: int = 1536):  # 默认目标维度为1536，与OpenAI维度一致
+                 api_key: str,
+                 target_dim: int ,
+                 base_url: str = 'https://api.siliconflow.cn',
+                 model: str ='BAAI/bge-large-zh-v1.5'):  # 默认目标维度为1536，与OpenAI维度一致
         self.base_url = base_url
         self.api_key = api_key
         self.model = model
