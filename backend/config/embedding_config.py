@@ -1,5 +1,5 @@
 from core.database.mysql_client import MysqlClient
-from core.database.models import LLMProviderConfig,EmbeddingVendorType
+from core.database.models import EmbeddingModelConfig,EmbeddingVendorType
 
 class DOUBAO_Embedding_Config(MysqlClient):
     BASE_URL:str= ""
@@ -11,7 +11,7 @@ class DOUBAO_Embedding_Config(MysqlClient):
     def __del__(self):
         super().__del__()
     def getinfo(self):
-        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == EmbeddingVendorType.DOUBAOAI).first()
+        info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.vendor_type == EmbeddingVendorType.DOUBAOAI).first()
         if info:
             self.BASE_URL = info.base_url
             self.MODEL = info.model
@@ -30,7 +30,7 @@ class OpenAI_Embedding_Config(MysqlClient):
     def __del__(self):
         super().__del__()
     def getinfo(self):
-        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == EmbeddingVendorType.OPENAI).first()
+        info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.vendor_type == EmbeddingVendorType.OPENAI).first()
         if info:
             self.BASE_URL = info.base_url
             self.MODEL = info.model
@@ -48,7 +48,7 @@ class OneAPI_Embedding_Config(MysqlClient):
     def __del__(self):
         super().__del__()
     def getinfo(self):
-        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == EmbeddingVendorType.ONEAPI).first()
+        info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.vendor_type == EmbeddingVendorType.ONEAPI).first()
         if info:
             self.BASE_URL = info.base_url
             self.MODEL = info.model
@@ -66,7 +66,7 @@ class SILICONFLOW_Embedding_Config(MysqlClient):
     def __del__(self):
         super().__del__()
     def getinfo(self):
-        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == EmbeddingVendorType.SILICONFLOW).first()
+        info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.vendor_type == EmbeddingVendorType.SILICONFLOW).first()
         if info:
             self.BASE_URL = info.base_url
             self.MODEL = info.model
