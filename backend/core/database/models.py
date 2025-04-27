@@ -1,8 +1,11 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Float, Integer, String, Text,TIMESTAMP,Boolean
+from sqlalchemy import Column, Float, Integer, String, Text,TIMESTAMP,Boolean, DateTime, JSON
+from sqlalchemy.dialects.mysql import ENUM as SQLEnum
 import uuid
 from .mysql_client import Base
-
+from enum import Enum
+from datetime import datetime
+import json
 def generate_id(length=18):
     # 生成一个 UUID
     id_str = str(uuid.uuid4())
@@ -142,3 +145,46 @@ class UserInfo(Base):
     is_admin = Column(Boolean, default=False)
     status = Column(String(20), default='active') # 新增 status 字段，默认为 active
 
+class LLMVendorType(str, Enum):
+    OPENAI = "openai"
+    ONEAPI = "oneapi"
+    ZHIPUAI = "zhipuai"
+    SPARKAI = "sparkai"
+    DOUBAOAI = "doubaoai"
+    OLLAMA = "ollama"
+    SILICONFLOW = "siliconflow"
+
+class LLMProviderConfig(Base):
+    __tablename__ = 'llm_provider_configs'
+
+    id = Column(Integer, primary_key=True)
+    vendor_type = Column(SQLEnum(LLMVendorType), nullable=False)
+    config = Column(JSON, nullable=True)  # 存储厂商专属配置
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # 通用字段（可选）
+    base_url = Column(String, nullable=True)  # 多个厂商共用
+    api_key = Column(String, nullable=True)  # 多个厂商共用
+    model = Column(String, nullable=True)    # 多个厂商共用
+
+class EmbeddingVendorType(str, Enum):
+    OPENAI = "openai"
+    ONEAPI = "oneapi"
+    ZHIPUAI = "zhipuai"
+    DOUBAOAI = "doubaoai"
+    SILICONFLOW = "siliconflow"
+
+class EmbeddingModelConfig(Base):
+    __tablename__ = 'embedding_model_configs'
+
+    id = Column(Integer, primary_key=True)
+    vendor_type = Column(SQLEnum(EmbeddingVendorType), nullable=False)
+    config = Column(JSON, nullable=False)  # 存储厂商专属配置
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # 通用字段（可选）
+    base_url = Column(String, nullable=True)  # 多个厂商共用
+    api_key = Column(String, nullable=True)  # 多个厂商共用
+    model = Column(String, nullable=True)    # 多个厂商共用
