@@ -8,11 +8,11 @@ from .llm import LLM
 
 class SparkAILLM(LLM):
     def __init__(self, 
-                 spark_api_key: str=llm_Settings.SPARKAI_API_KEY,
-                 spark_api_url:str=llm_Settings.SPARKAI_BASE_URL,
-                 spark_api_secret:str=llm_Settings.SPARKAI_API_SECRET,
-                 spark_llm_domain:str=llm_Settings.SPARKAI_DOMAIN,
-                 spark_app_id:str=llm_Settings.SPARKAI_APP_ID,
+                 spark_api_key: str,
+                 spark_api_url:str,
+                 spark_api_secret:str,
+                 spark_llm_domain:str,
+                 spark_app_id:str,
             ) -> None:
         self.client = ChatSparkLLM(spark_api_key=spark_api_key,spark_api_secret=spark_api_secret,spark_app_id=spark_app_id,spark_llm_domain=spark_llm_domain,spark_api_url=spark_api_url)
         self.messages: List[ChatMessage] = []

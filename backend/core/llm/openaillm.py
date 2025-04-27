@@ -8,7 +8,7 @@ from config.config_info import settings as llm_Settings
 from .llm import LLM
 
 class OpenAILLM(LLM):
-    def __init__(self, api_key: str=llm_Settings.OPENAI_API_KEY,base_url:str=llm_Settings.OPENAI_BASE_URL,model:str=llm_Settings.OPENAI_MODEL) -> None:
+    def __init__(self, api_key: str,base_url,model:str) -> None:
         self.client = OpenAI(api_key=api_key,base_url=base_url)
         self.messages: List[Iterable[dict]] = []
         self.model = model

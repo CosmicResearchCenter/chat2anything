@@ -9,8 +9,8 @@ class OllamaLLM(LLM):
 
     def __init__(
             self,
-            model: str = llm_Settings.OLLAMA_MODEL,
-            base_url: str = llm_Settings.OLLAMA_BASE_URL
+            model: str,
+            base_url: str
     ) -> None:
         self.client = Client(host=base_url)
         self.messages: List[Iterable[dict]] = []

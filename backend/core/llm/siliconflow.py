@@ -6,9 +6,9 @@ from config.config_info import settings as llm_Settings
 from .llm import LLM
 
 class SiliconFlowLLM(LLM):
-    def __init__(self, api_key: str=llm_Settings.SILICONFLOW_API_KEY, 
-                 base_url: str=llm_Settings.SILICONFLOW_BASE_URL, 
-                 model: str=llm_Settings.SILICONFLOW_MODEL) -> None:
+    def __init__(self, api_key: str, 
+                 base_url: str, 
+                 model: str) -> None:
         self.api_key = api_key
         self.base_url = base_url if base_url.endswith("/") else base_url + "/"
         self.url = f"{self.base_url}v1/chat/completions"

@@ -6,7 +6,7 @@ from .llm import LLM
 import requests
 import json
 class OneApiLLM(LLM):
-    def __init__(self, api_key: str=llm_Settings.ONEAPI_API_KEY,base_url:str=llm_Settings.ONEAPI_BASE_URL,model:str=llm_Settings.ONEAPI_MODEL) -> None:
+    def __init__(self, api_key: str,base_url:str,model:str) -> None:
         self.api_key = api_key
         self.base_url = base_url
         self.headers = {

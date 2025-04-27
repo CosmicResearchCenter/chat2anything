@@ -8,7 +8,7 @@ from config.config_info import settings
 from .llm import LLM
 
 class ZhiPuAI_LLM(LLM):
-    def __init__(self, api_key: str=settings.ZHIPUAI_API_KEY,model:str=settings.ZHIPUAI_MODEL) -> None:
+    def __init__(self, api_key: str,model:str) -> None:
         self.client = ZhipuAI(api_key=api_key) # 填写您自己的APIKey
         self.messages: List[Iterable[dict]] = []
         self.model = model
