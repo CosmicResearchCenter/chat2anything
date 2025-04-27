@@ -5,7 +5,7 @@ from config.config_info import settings as llm_Settings
 # (type alias) ChatCompletionMessageParam: type[ChatCompletionSystemMessageParam] | type[ChatCompletionUserMessageParam] | type[ChatCompletionAssistantMessageParam] | type[ChatCompletionToolMessageParam] | type[ChatCompletionFunctionMessageParam]
 from .llm import LLM
 class DouBaoLLM(LLM):
-    def __init__(self,api_key:str=llm_Settings.DOUBAOAI_API_KEY,base_url:str=llm_Settings.DOUBAOAI_BASE_URL,model:str=llm_Settings.DOUBAOAI_MODEL) -> None:
+    def __init__(self,api_key,base_url,model:str) -> None:
         self.client = Ark(api_key=api_key,base_url=base_url)
         self.messages:List[Iterable[ChatCompletionMessageParam]]= []
         self.model:str = model
