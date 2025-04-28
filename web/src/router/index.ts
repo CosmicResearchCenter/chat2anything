@@ -36,6 +36,11 @@ const router = createRouter({
       component: () => import('../views/Account/AdminUserView.vue')
     },
     {
+      path:"/admin/models",
+      name:"admin_user",
+      component: () => import('../views/Account/AdminModelView.vue')
+    },
+    {
       path: '/manager',
       name: 'manager',
       // route level code-splitting
