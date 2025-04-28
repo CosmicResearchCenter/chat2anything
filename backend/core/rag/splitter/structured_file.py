@@ -9,14 +9,15 @@ from core.rag.prompt_template.prompt_template import PromptTemplate
 from core.rag.prompt_template.prompts import SPLITTER_PROMPT
 
 class TextSplitter:
-    def __init__(self,splitter_args,SPPLITTER_MODEL=settings.SPPLITTER_MODEL,split_model:str=settings.LLM_PROVIDER):
+    def __init__(self,splitter_args,split_LLM_PROVIDER:str,split_llm:str,SPPLITTER_MODEL=settings.SPPLITTER_MODEL,):
         # self.chunk_size = chunk_size
         # self.chunk_overlap = chunk_overlap
         # self.length_function = length_function
         # self.is_separator_regex = is_separator_regex
         self.splitter_args = splitter_args
 
-        self.split_model = split_model
+        self.split_llm = split_llm
+        self.split_LLM_PROVIDER = split_LLM_PROVIDER
         self.SPPLITTER_MODEL = SPPLITTER_MODEL
         self.result:List[Document] = []
         # self.llm_client = LLM_Manager().creatLLM(split_model)
@@ -47,7 +48,7 @@ class TextSplitter:
         print("开始拆分文本")
         print(len(text) )
         if len(text)<int(self.splitter_args['window_size']):
-            llm_client = LLM_Manager().creatLLM(self.split_model)
+            llm_client = LLM_Manager().creatLLM(mode_provider=self.split_LLM_PROVIDER,model=self.split_llm)
             
             prompt = PromptTemplate(
                 template=SPLITTER_PROMPT,
@@ -92,7 +93,7 @@ class TextSplitter:
             print(f"所有文本块处理完成，共有 {len(self.result)} 个段落")
             return self.result
     def _LLM_Task(self,retriever_text:str,splitter_str:str)->List[Document]:
-        llm_client = LLM_Manager().creatLLM(self.split_model)
+        llm_client = LLM_Manager().creatLLM(mode_provider=self.split_LLM_PROVIDER,model=self.split_llm)
         
         prompt = PromptTemplate(
             template=SPLITTER_PROMPT,

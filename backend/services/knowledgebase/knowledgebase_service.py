@@ -1,5 +1,5 @@
 from core.rag.database.mysql.model import KnowledgeBase
-from core.database.models import DocInfo,DocIndexStatus,KnowledgeConfig
+from core.database.models import DocInfo,DocIndexStatus,KnowledgeConfig,EmbeddingModelConfig
 from core.database.mysql_client import MysqlClient
 from fastapi import HTTPException
 from models.general_models import GenericResponse
@@ -20,6 +20,7 @@ import threading
 import aiofiles
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
+from core.utils.utils import GetDeafultLLM_Chat,GetDefaultEmbedding
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'docx','doc','md','excel','xlsx','xls'}
 
@@ -46,6 +47,9 @@ class KBase(MysqlClient):
     def __init__(self):
         super().__init__()
         self.index_status = False
+        self.default_llm_config = GetDeafultLLM_Chat()
+        self.default_embedding_config = GetDefaultEmbedding()
+
     def __del__(self):
         super().__del__()
     # 创建知识库
@@ -202,6 +206,8 @@ class KBase(MysqlClient):
         # 获取分割参数
         splitter_model = documentSplitArgs.splitter_model
         splitter_args = documentSplitArgs.splitter_args
+
+
         print(f'insert_knowledgebase document {doc.doc_name}, splitter_model: {splitter_model}, splitter_args: {splitter_args}')
         if splitter_model == 0:
             splitter_args["window_size"] = int(splitter_args["window_size"])
@@ -215,7 +221,7 @@ class KBase(MysqlClient):
         
         return index_status
     # 解析文档
-    def _insert_knowledgebase(self, base_id:int, doc:DocInfo, splitter_args, splitterModel:SplitterModel):
+    def _insert_knowledgebase(self, base_id:int, doc:DocInfo, splitter_args, splitterModel:SplitterModel)->None:
         print(f'开始处理文档: {doc.doc_name}')
         rAG_Pipeline:RAG_Pipeline = RAG_Pipeline()
 
@@ -226,11 +232,19 @@ class KBase(MysqlClient):
         
         try:
             print(f'开始拆分文档: {doc_path}，使用模型: {splitterModel}')
-            docs = rAG_Pipeline.split_files(str(doc_path), splitter_args, splitterModel)
+            
+
+            docs = rAG_Pipeline.split_files(str(doc_path), splitter_args, splitterModel,split_LLM_PROVIDER=self.default_llm_config.vendor_type,split_llm=self.default_llm_config.model)
             print(f'文档拆分完成: {doc.doc_name}, 共拆分为 {len(docs)} 个段落')
             
             print(f'开始插入知识库: {base_id}')
-            rAG_Pipeline.insert_knowledgebase(file_path=str(doc_path), docs=docs, knowledge_base_id=base_id, doc_name=doc.doc_name, knowledge_doc_id=doc.save_id)
+            rAG_Pipeline.insert_knowledgebase(file_path=str(doc_path), 
+                                              docs=docs, 
+                                              knowledge_base_id=base_id, 
+                                              doc_name=doc.doc_name, 
+                                              knowledge_doc_id=doc.save_id, 
+                                              Embedding_Provider=self.default_embedding_config.vendor_type, 
+                                              Embedding_Model=self.default_embedding_config.model)
             print(f'成功插入知识库: {doc.doc_name}')
         except Exception as e:
             print(f"处理文档时发生错误 {doc.doc_name}: {str(e)}")
@@ -263,10 +277,18 @@ class KBase(MysqlClient):
             raise HTTPException(status_code=404, detail="KnowledgeBase not found")
         knowledgeBaseName = knowledgeBase.knowledgeBaseName
         config = self.db.query(KnowledgeConfig).filter(KnowledgeConfig.knowledgeBaseId == base_id).first()
+
+        embedding_info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.is_default == True).first()  
+        embedding_info:EmbeddingInfo = EmbeddingInfo(embedding_model=embedding_info.model, embedding_provider=embedding_info.vendor_type)
         if not config:
             raise HTTPException(status_code=404, detail="KnowledgeBase config not found")
         
-        return KnowledgeBaseConfig(knowledgeBaseId=base_id,knowledgeBaseName=knowledgeBaseName,rag_model=config.rag_model,is_rerank=config.is_rerank,is_public=knowledgeBase.is_public)
+        return KnowledgeBaseConfig(knowledgeBaseId=base_id,
+                                   knowledgeBaseName=knowledgeBaseName,
+                                   rag_model=config.rag_model,
+                                   is_rerank=config.is_rerank,
+                                   is_public=knowledgeBase.is_public,
+                                   embedding_info=embedding_info)
     # 更新知识库配置信息
     @check_kb_owner_decorator
     def update_kb_config(self, base_id:str,username:str,config:KnowledgeBaseConfig)->GenericResponse:

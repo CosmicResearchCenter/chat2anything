@@ -54,3 +54,66 @@ class RecentActivitiesRequest(BaseModel):
 
 class ActiveUsersRequest(BaseModel):
     period: str
+
+# 新增模型API配置相关模型
+class LLMConfigBase(BaseModel):
+    vendor_type: str
+    model: str
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    config: Optional[dict] = None
+    is_default_chat: Optional[bool] = False
+    is_default_splitter: Optional[bool] = False
+
+class LLMConfigCreate(LLMConfigBase):
+    pass
+
+class LLMConfigUpdate(LLMConfigBase):
+    id: int
+
+class LLMConfigResponse(BaseModel):
+    id: int
+    vendor_type: str
+    model: str
+    base_url: Optional[str] = None
+    api_key_masked: Optional[str] = None  # API密钥会被掩码处理
+    config: Optional[dict] = None
+    is_default: bool
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+class LLMConfigListResponse(BaseModel):
+    code: int
+    message: str
+    data: List[LLMConfigResponse]
+
+# 嵌入模型配置
+class EmbeddingConfigBase(BaseModel):
+    vendor_type: str
+    model: str
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    config: Optional[dict] = None
+    is_default: Optional[bool] = False
+
+class EmbeddingConfigCreate(EmbeddingConfigBase):
+    pass
+
+class EmbeddingConfigUpdate(EmbeddingConfigBase):
+    id: int
+
+class EmbeddingConfigResponse(BaseModel):
+    id: int
+    vendor_type: str
+    model: str
+    base_url: Optional[str] = None
+    api_key_masked: Optional[str] = None  # API密钥会被掩码处理
+    config: Optional[dict] = None
+    is_default: bool
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+class EmbeddingConfigListResponse(BaseModel):
+    code: int
+    message: str
+    data: List[EmbeddingConfigResponse]

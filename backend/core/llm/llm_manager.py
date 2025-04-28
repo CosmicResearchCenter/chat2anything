@@ -8,7 +8,6 @@ from .siliconflow import SiliconFlowLLM
 from .llm import LLM
 # 导入所有需要的配置类
 from config.llm_config import (
-    LLM_Settings,
     DouBaoAI_Config,
     OpenAI_Config,
     ZhiPuAI_Config,
@@ -22,7 +21,7 @@ class LLM_Provider(Enum):
     Types of LLM Providers.
     """
     OPENAI = "OPENAI"
-    DOUBAO = "DOUBAO"
+    DOUBAOAI = "DOUBAOAI"
     ZHIPUAI = "ZHIPUAI"
     SPARKAI = "SPARKAI"
     ONEAPI = "ONEAPI"
@@ -45,7 +44,7 @@ class LLM_Manager:
             raise e # 直接抛出 get_llm 抛出的异常
 
         # 根据提供商类型加载并检查配置
-        if lLM_Provider == LLM_Provider.DOUBAO:
+        if lLM_Provider == LLM_Provider.DOUBAOAI:
             config = DouBaoAI_Config(model=model)
             if not config.API_KEY or not config.BASE_URL or not config.MODEL:
                 raise ValueError(f"豆包（DOUBAO）的配置信息不完整或未设置。请检查数据库。")

@@ -16,7 +16,7 @@ from .prompt_template.prompts import INSTRUCTIONS,SYSTEM,PROMPT_TEMPLATE,RESOLVE
 from .models.knolwedge_base import ResultByDoc
 from .utils.embedding_config import EmbeddingConfig
 import time
-from core.utils.utils import GetDeafultLLM,GetDefaultEmbedding
+from core.utils.utils import GetDeafultLLM_Chat,GetDefaultEmbedding
 class RAG_Pipeline:
     def __init__(self):#,LLM_Provider:str,LLM_Model:str,Embedding_Provider:str,Embedding_Model:str):
         self.mysql_client = MysqlClient()
@@ -26,7 +26,7 @@ class RAG_Pipeline:
         # self.LLM_Model:str = LLM_Model
         # self.Embedding_Provider:str = Embedding_Provider
         # self.Embedding_Model:str = Embedding_Model
-        self.default_llm_config = GetDeafultLLM()
+        self.default_llm_config = GetDeafultLLM_Chat()
         self.default_embedding_config = GetDefaultEmbedding()
     #创建知识库
     def create_knowledgebase(self, knowledge_base_name: str,username:str="admin"):
@@ -46,8 +46,8 @@ class RAG_Pipeline:
         knowledgebaseList:List[KnowledgeBase] =  self.mysql_client.GetKnowledgeBasesList(username)
         return knowledgebaseList
     # 文档拆分
-    def split_files(self,file_path:str,splitter_args,splitterModel:SplitterModel):
-        return split_file(file_path,splitter_args=splitter_args,splitterModel=splitterModel)
+    def split_files(self,file_path:str,splitter_args,splitterModel:SplitterModel,split_LLM_PROVIDER:str,split_llm:str):
+        return split_file(file_path,splitter_args=splitter_args,splitterModel=splitterModel,split_LLM_PROVIDER=split_LLM_PROVIDER,split_llm=split_llm)
     
     #文档插入知识库
     def insert_knowledgebase(self,file_path:str,docs:List[LcDocument], knowledge_base_id: str,doc_name:str,knowledge_doc_id:str,Embedding_Provider:str,Embedding_Model:str):

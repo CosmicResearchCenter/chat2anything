@@ -29,7 +29,7 @@ def chat(query: ChatMessageRequest,username: str = Depends(get_current_user)):
     if not conversation_id:
         return ChatMessageResponse(code=400,message="Conversation id is required")
     
-    chat:Chat = Chat(conversation_id,username,rag,llm_config=query.llm_info)
+    chat:Chat = Chat(conversation_id,username,rag)
 
     try:
         if query.streaming:

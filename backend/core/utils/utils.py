@@ -67,9 +67,18 @@ async def get_is_admin(token: str = Depends(oauth2_scheme)):
     return GenericResponse(message="获取成功",code=200,data=[{'is_admin':user.is_admin,'username':user.username}])
 
 
-def GetDeafultLLM()->LLMProviderConfig:
+def GetDeafultLLM_Chat()->LLMProviderConfig:
     db_client = MysqlClient()
-    llm_config = db_client.db.query(LLMProviderConfig).filter(LLMProviderConfig.is_default == True).first()
+    llm_config = db_client.db.query(LLMProviderConfig).filter(LLMProviderConfig.is_default_chat == True).first()
+
+    if llm_config is  None:
+        return
+    
+    return llm_config
+
+def GetDeafultLLM_Splitter()->LLMProviderConfig:
+    db_client = MysqlClient()
+    llm_config = db_client.db.query(LLMProviderConfig).filter(LLMProviderConfig.is_default_splitter == True).first()
 
     if llm_config is  None:
         return

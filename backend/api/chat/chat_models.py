@@ -3,16 +3,12 @@ from typing import List, Optional,Dict,Any
 from core.rag.models.knolwedge_base import ResultByDoc
 from services.chat.chat_type import ChatMessageHistory
 
-class LLMConfig(BaseModel):
-    LLM_Provider:str
-    model:str
 
 # Chat message request
 class ChatMessageRequest(BaseModel):
     streaming: bool
     conversation_id: str
     message: str
-    llm_info:LLMConfig
 
 
 # Chat message history response

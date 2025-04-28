@@ -1,7 +1,7 @@
 """
 后台管理员部分的路由
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body, Path
 import hashlib
 import jwt
 import datetime
@@ -11,7 +11,7 @@ from config.config_info import settings
 from core.database.mysql_client import MysqlClient
 from core.database.models import UserInfo
 from core.utils.utils import get_is_admin
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from services.admin.admin_service  import AdminService
 from .admin import (ResponseGenral,
                     DeleteUserConversationRequest,
@@ -25,7 +25,16 @@ from .admin import (ResponseGenral,
                     ActiveUsersRequest,
                     UserListResponse,      # 导入
                     UserDetailsResponse,   # 导入
-                    UpdateUserStatusRequest # 导入
+                    UpdateUserStatusRequest, # 导入
+                    # 新增配置相关模型
+                    LLMConfigCreate,
+                    LLMConfigUpdate,
+                    LLMConfigResponse,
+                    LLMConfigListResponse,
+                    EmbeddingConfigCreate,
+                    EmbeddingConfigUpdate,
+                    EmbeddingConfigResponse,
+                    EmbeddingConfigListResponse
                     )
 router = APIRouter()
 
@@ -332,3 +341,331 @@ async def get_active_users(
         message="获取活跃用户统计成功",
         data=[active_users]
     )
+
+# ----------- LLM配置管理接口 -----------
+
+# 获取所有LLM配置
+@router.get("/llm_configs", response_model=LLMConfigListResponse)
+async def get_llm_configs(username: str = Depends(get_is_admin)):
+    admin_service = AdminService()
+    configs = admin_service.get_llm_configs()
+    return LLMConfigListResponse(
+        code=200,
+        message="获取LLM配置列表成功",
+        data=configs
+    )
+
+# 获取单个LLM配置
+@router.get("/llm_configs/{config_id}", response_model=ResponseGenral)
+async def get_llm_config(
+    config_id: int = Path(..., description="配置ID"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    config = admin_service.get_llm_config(config_id)
+    
+    if not config:
+        raise HTTPException(
+            status_code=404,
+            detail="找不到指定的LLM配置"
+        )
+        
+    return ResponseGenral(
+        code=200,
+        message="获取LLM配置成功",
+        data=[config]
+    )
+
+# 创建LLM配置
+@router.post("/llm_configs", response_model=ResponseGenral)
+async def create_llm_config(
+    config_data: LLMConfigCreate = Body(...),
+    username: str = Depends(get_is_admin)
+):
+    try:
+        admin_service = AdminService()
+        config = admin_service.create_llm_config(config_data.dict())
+        
+        return ResponseGenral(
+            code=200,
+            message="创建LLM配置成功",
+            data=[config]
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"创建LLM配置失败: {str(e)}"
+        )
+
+# 更新LLM配置
+@router.put("/llm_configs/{config_id}", response_model=ResponseGenral)
+async def update_llm_config(
+    config_id: int = Path(..., description="配置ID"),
+    config_data: LLMConfigUpdate = Body(...),
+    username: str = Depends(get_is_admin)
+):
+    try:
+        admin_service = AdminService()
+        config = admin_service.update_llm_config(config_id, config_data.dict(exclude_unset=True))
+        
+        if not config:
+            raise HTTPException(
+                status_code=404,
+                detail="找不到指定的LLM配置"
+            )
+            
+        return ResponseGenral(
+            code=200,
+            message="更新LLM配置成功",
+            data=[config]
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"更新LLM配置失败: {str(e)}"
+        )
+
+# 删除LLM配置
+@router.delete("/llm_configs/{config_id}", response_model=ResponseGenral)
+async def delete_llm_config(
+    config_id: int = Path(..., description="配置ID"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    success = admin_service.delete_llm_config(config_id)
+    
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail="找不到指定的LLM配置"
+        )
+        
+    return ResponseGenral(
+        code=200,
+        message="删除LLM配置成功",
+        data={}
+    )
+
+# ----------- Embedding模型配置管理接口 -----------
+
+# 获取所有Embedding配置
+@router.get("/embedding_configs", response_model=EmbeddingConfigListResponse)
+async def get_embedding_configs(username: str = Depends(get_is_admin)):
+    admin_service = AdminService()
+    configs = admin_service.get_embedding_configs()
+    return EmbeddingConfigListResponse(
+        code=200,
+        message="获取Embedding配置列表成功",
+        data=configs
+    )
+
+# 获取单个Embedding配置
+@router.get("/embedding_configs/{config_id}", response_model=ResponseGenral)
+async def get_embedding_config(
+    config_id: int = Path(..., description="配置ID"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    config = admin_service.get_embedding_config(config_id)
+    
+    if not config:
+        raise HTTPException(
+            status_code=404,
+            detail="找不到指定的Embedding配置"
+        )
+        
+    return ResponseGenral(
+        code=200,
+        message="获取Embedding配置成功",
+        data=[config]
+    )
+
+# 创建Embedding配置
+@router.post("/embedding_configs", response_model=ResponseGenral)
+async def create_embedding_config(
+    config_data: EmbeddingConfigCreate = Body(...),
+    username: str = Depends(get_is_admin)
+):
+    try:
+        admin_service = AdminService()
+        config = admin_service.create_embedding_config(config_data.dict())
+        
+        return ResponseGenral(
+            code=200,
+            message="创建Embedding配置成功",
+            data=[config]
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"创建Embedding配置失败: {str(e)}"
+        )
+
+# 更新Embedding配置
+@router.put("/embedding_configs/{config_id}", response_model=ResponseGenral)
+async def update_embedding_config(
+    config_id: int = Path(..., description="配置ID"),
+    config_data: EmbeddingConfigUpdate = Body(...),
+    username: str = Depends(get_is_admin)
+):
+    try:
+        admin_service = AdminService()
+        config = admin_service.update_embedding_config(config_id, config_data.dict(exclude_unset=True))
+        
+        if not config:
+            raise HTTPException(
+                status_code=404,
+                detail="找不到指定的Embedding配置"
+            )
+            
+        return ResponseGenral(
+            code=200,
+            message="更新Embedding配置成功",
+            data=[config]
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"更新Embedding配置失败: {str(e)}"
+        )
+
+# 删除Embedding配置
+@router.delete("/embedding_configs/{config_id}", response_model=ResponseGenral)
+async def delete_embedding_config(
+    config_id: int = Path(..., description="配置ID"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    success = admin_service.delete_embedding_config(config_id)
+    
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail="找不到指定的Embedding配置"
+        )
+        
+    return ResponseGenral(
+        code=200,
+        message="删除Embedding配置成功",
+        data={}
+    )
+
+# ---------- 默认模型配置管理接口 ----------
+
+# 设置默认LLM模型配置
+@router.post("/llm_configs/{config_id}/set_default", response_model=ResponseGenral)
+async def set_default_llm_config(
+    config_id: int = Path(..., description="配置ID"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    config = admin_service.set_default_llm_config(config_id)
+    
+    if not config:
+        raise HTTPException(
+            status_code=404,
+            detail="找不到指定的LLM配置"
+        )
+        
+    return ResponseGenral(
+        code=200,
+        message="设置默认LLM配置成功",
+        data=[config]
+    )
+
+# 设置默认Embedding模型配置
+@router.post("/embedding_configs/{config_id}/set_default", response_model=ResponseGenral)
+async def set_default_embedding_config(
+    config_id: int = Path(..., description="配置ID"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    config = admin_service.set_default_embedding_config(config_id)
+    
+    if not config:
+        raise HTTPException(
+            status_code=404,
+            detail="找不到指定的Embedding配置"
+        )
+        
+    return ResponseGenral(
+        code=200,
+        message="设置默认Embedding配置成功",
+        data=[config]
+    )
+
+# 获取指定供应商的默认LLM配置
+@router.get("/llm_configs/default/{vendor_type}", response_model=ResponseGenral)
+async def get_default_llm_config(
+    vendor_type: str = Path(..., description="供应商类型"),
+    username: str = Depends(get_is_admin)
+):
+    try:
+        admin_service = AdminService()
+        config = admin_service.get_default_llm_config(vendor_type)
+        
+        if not config:
+            return ResponseGenral(
+                code=404,
+                message=f"未找到{vendor_type}的默认LLM配置",
+                data=[]
+            )
+            
+        return ResponseGenral(
+            code=200,
+            message="获取默认LLM配置成功",
+            data=[config]
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+# 获取指定供应商的默认Embedding配置
+@router.get("/embedding_configs/default/{vendor_type}", response_model=ResponseGenral)
+async def get_default_embedding_config(
+    vendor_type: str = Path(..., description="供应商类型"),
+    username: str = Depends(get_is_admin)
+):
+    try:
+        admin_service = AdminService()
+        config = admin_service.get_default_embedding_config(vendor_type)
+        
+        if not config:
+            return ResponseGenral(
+                code=404,
+                message=f"未找到{vendor_type}的默认Embedding配置",
+                data=[]
+            )
+            
+        return ResponseGenral(
+            code=200,
+            message="获取默认Embedding配置成功",
+            data=[config]
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )

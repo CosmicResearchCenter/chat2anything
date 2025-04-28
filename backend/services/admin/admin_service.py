@@ -1,6 +1,8 @@
 from core.rag.rag_pipeline import RAG_Pipeline
 from core.database.mysql_client import MysqlClient
 from core.database.models import KnowledgeBase,UserInfo,Chat_Messages,Conversation,DocInfo
+from core.database.models import LLMProviderConfig, EmbeddingModelConfig # 导入模型
+from core.database.models import LLMVendorType, EmbeddingVendorType # 导入类型枚举
 from core.rag.database.milvus.milvus_client import MilvusCollectionManager
 from core.rag.database.elasticsearch.elastic_client import ElasticClient
 from .admin_type import (SystemInfo,
@@ -19,7 +21,7 @@ from .admin_type import (SystemInfo,
                         UserStats     # 导入
                          )
 import psutil
-from typing import List,Tuple, Optional
+from typing import List,Tuple, Optional, Dict, Any, Union
 from datetime import datetime, timedelta
 import calendar
 from sqlalchemy import or_, desc, asc, func # 导入 or_, desc, asc, func
@@ -722,6 +724,403 @@ class AdminService:
             active_users=active_users,
             growth_rate=round(growth_rate, 1)
         )
+    
+    # ---------- LLM API配置管理 ----------
+    
+    def get_llm_configs(self) -> List[Dict[str, Any]]:
+        """获取所有LLM提供商配置"""
+        mysql_client = MysqlClient()
+        configs = mysql_client.db.query(LLMProviderConfig).all()
+        result = []
+        
+        for config in configs:
+            # 对API密钥进行掩码处理
+            api_key_masked = None
+            if config.api_key:
+                if len(config.api_key) > 8:
+                    api_key_masked = config.api_key[:4] + '*' * (len(config.api_key) - 8) + config.api_key[-4:]
+                else:
+                    api_key_masked = '****' + config.api_key[-4:] if len(config.api_key) >= 4 else '****'
+                    
+            result.append({
+                "id": config.id,
+                "vendor_type": config.vendor_type,
+                "model": config.model,
+                "base_url": config.base_url,
+                "api_key_masked": api_key_masked,
+                "config": config.config,
+                "is_default": config.is_default,
+                "created_at": config.created_at.isoformat() if config.created_at else None,
+                "updated_at": config.updated_at.isoformat() if config.updated_at else None
+            })
+            
+        return result
+    
+    def get_llm_config(self, config_id: int) -> Optional[Dict[str, Any]]:
+        """获取特定LLM配置"""
+        mysql_client = MysqlClient()
+        config = mysql_client.db.query(LLMProviderConfig).filter(LLMProviderConfig.id == config_id).first()
+        
+        if not config:
+            return None
+            
+        # 对API密钥进行掩码处理
+        api_key_masked = None
+        if config.api_key:
+            if len(config.api_key) > 8:
+                api_key_masked = config.api_key[:4] + '*' * (len(config.api_key) - 8) + config.api_key[-4:]
+            else:
+                api_key_masked = '****' + config.api_key[-4:] if len(config.api_key) >= 4 else '****'
+                
+        return {
+            "id": config.id,
+            "vendor_type": config.vendor_type,
+            "model": config.model,
+            "base_url": config.base_url,
+            "api_key_masked": api_key_masked,
+            "config": config.config,
+            "is_default_splitter": config.is_default_splitter,
+            "is_default_chat": config.is_default_chat,
+            "created_at": config.created_at.isoformat() if config.created_at else None,
+            "updated_at": config.updated_at.isoformat() if config.updated_at else None
+        }
+    
+    def create_llm_config(self, config_data: Dict[str, Any]) -> Dict[str, Any]:
+        """创建新的LLM配置"""
+        mysql_client = MysqlClient()
+        
+        # 检查vendor_type是否有效
+        try:
+            vendor_type = LLMVendorType(config_data["vendor_type"])
+        except ValueError:
+            raise ValueError(f"无效的提供商类型: {config_data['vendor_type']}")
+            
+        # 如果设置为默认配置，先将同类型的所有配置设为非默认
+        if config_data.get("is_default_chat", False):
+            default_configs_c = mysql_client.db.query(LLMProviderConfig).filter(
+                LLMProviderConfig.vendor_type == vendor_type,
+                LLMProviderConfig.is_default_chat == True
+            ).all()
+            
+            for default_config in default_configs_c:
+                default_config.is_default_chat = False
+        if config_data.get("is_default_splitter", False):
+            default_configs = mysql_client.db.query(LLMProviderConfig).filter(
+                LLMProviderConfig.vendor_type == vendor_type,
+                LLMProviderConfig.is_default_splitter == True
+            ).all()
+            
+            for default_config in default_configs:
+                default_config.is_default_splitter = False        
+        # 创建新配置
+        new_config = LLMProviderConfig(
+            vendor_type=vendor_type,
+            model=config_data["model"],
+            base_url=config_data.get("base_url"),
+            api_key=config_data.get("api_key"),
+            config=config_data.get("config"),
+            is_default_chat=config_data.get("is_default_chat", False),
+            is_default_splitter=config_data.get("is_default_splitter", False),
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        
+        mysql_client.db.add(new_config)
+        mysql_client.db.commit()
+        mysql_client.db.refresh(new_config)
+        
+        # 返回掩码处理后的结果
+        return self.get_llm_config(new_config.id)
+    
+    def update_llm_config(self, config_id: int, config_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """更新LLM配置"""
+        mysql_client = MysqlClient()
+        config = mysql_client.db.query(LLMProviderConfig).filter(LLMProviderConfig.id == config_id).first()
+        
+        if not config:
+            return None
+            
+        # 检查vendor_type是否有效
+        if "vendor_type" in config_data:
+            try:
+                vendor_type = LLMVendorType(config_data["vendor_type"])
+                config_data["vendor_type"] = vendor_type
+            except ValueError:
+                raise ValueError(f"无效的提供商类型: {config_data['vendor_type']}")
+                
+        # 如果设置为默认配置，先将同类型的所有配置设为非默认
+        if config_data.get("is_default", False) and not config.is_default:
+            default_configs = mysql_client.db.query(LLMProviderConfig).filter(
+                LLMProviderConfig.vendor_type == config.vendor_type,
+                LLMProviderConfig.is_default == True
+            ).all()
+            
+            for default_config in default_configs:
+                default_config.is_default = False
+        
+        # 更新字段
+        for key, value in config_data.items():
+            if hasattr(config, key):
+                setattr(config, key, value)
+                
+        config.updated_at = datetime.now()
+        
+        mysql_client.db.commit()
+        mysql_client.db.refresh(config)
+        
+        # 返回掩码处理后的结果
+        return self.get_llm_config(config.id)
+    
+    def delete_llm_config(self, config_id: int) -> bool:
+        """删除LLM配置"""
+        mysql_client = MysqlClient()
+        config = mysql_client.db.query(LLMProviderConfig).filter(LLMProviderConfig.id == config_id).first()
+        
+        if not config:
+            return False
+            
+        mysql_client.db.delete(config)
+        mysql_client.db.commit()
+        
+        return True
+        
+    # ---------- Embedding模型配置管理 ----------
+    
+    def get_embedding_configs(self) -> List[Dict[str, Any]]:
+        """获取所有Embedding模型配置"""
+        mysql_client = MysqlClient()
+        configs = mysql_client.db.query(EmbeddingModelConfig).all()
+        result = []
+        
+        for config in configs:
+            # 对API密钥进行掩码处理
+            api_key_masked = None
+            if config.api_key:
+                if len(config.api_key) > 8:
+                    api_key_masked = config.api_key[:4] + '*' * (len(config.api_key) - 8) + config.api_key[-4:]
+                else:
+                    api_key_masked = '****' + config.api_key[-4:] if len(config.api_key) >= 4 else '****'
+                    
+            result.append({
+                "id": config.id,
+                "vendor_type": config.vendor_type,
+                "model": config.model,
+                "base_url": config.base_url,
+                "api_key_masked": api_key_masked,
+                "config": config.config,
+                "is_default": config.is_default,
+                "created_at": config.created_at.isoformat() if config.created_at else None,
+                "updated_at": config.updated_at.isoformat() if config.updated_at else None
+            })
+            
+        return result
+    
+    def get_embedding_config(self, config_id: int) -> Optional[Dict[str, Any]]:
+        """获取特定Embedding配置"""
+        mysql_client = MysqlClient()
+        config = mysql_client.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.id == config_id).first()
+        
+        if not config:
+            return None
+            
+        # 对API密钥进行掩码处理
+        api_key_masked = None
+        if config.api_key:
+            if len(config.api_key) > 8:
+                api_key_masked = config.api_key[:4] + '*' * (len(config.api_key) - 8) + config.api_key[-4:]
+            else:
+                api_key_masked = '****' + config.api_key[-4:] if len(config.api_key) >= 4 else '****'
+                
+        return {
+            "id": config.id,
+            "vendor_type": config.vendor_type,
+            "model": config.model,
+            "base_url": config.base_url,
+            "api_key_masked": api_key_masked,
+            "config": config.config,
+            "is_default": config.is_default,
+            "created_at": config.created_at.isoformat() if config.created_at else None,
+            "updated_at": config.updated_at.isoformat() if config.updated_at else None
+        }
+    
+    def create_embedding_config(self, config_data: Dict[str, Any]) -> Dict[str, Any]:
+        """创建新的Embedding配置"""
+        mysql_client = MysqlClient()
+        
+        # 检查vendor_type是否有效
+        try:
+            vendor_type = EmbeddingVendorType(config_data["vendor_type"])
+        except ValueError:
+            raise ValueError(f"无效的提供商类型: {config_data['vendor_type']}")
+            
+        # 如果设置为默认配置，先将同类型的所有配置设为非默认
+        if config_data.get("is_default", False):
+            default_configs = mysql_client.db.query(EmbeddingModelConfig).filter(
+                EmbeddingModelConfig.vendor_type == vendor_type,
+                EmbeddingModelConfig.is_default == True
+            ).all()
+            
+            for default_config in default_configs:
+                default_config.is_default = False
+                
+        # 创建新配置
+        new_config = EmbeddingModelConfig(
+            vendor_type=vendor_type,
+            model=config_data["model"],
+            base_url=config_data.get("base_url"),
+            api_key=config_data.get("api_key"),
+            config=config_data.get("config"),
+            is_default=config_data.get("is_default", False),
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        
+        mysql_client.db.add(new_config)
+        mysql_client.db.commit()
+        mysql_client.db.refresh(new_config)
+        
+        # 返回掩码处理后的结果
+        return self.get_embedding_config(new_config.id)
+    
+    def update_embedding_config(self, config_id: int, config_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """更新Embedding配置"""
+        mysql_client = MysqlClient()
+        config = mysql_client.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.id == config_id).first()
+        
+        if not config:
+            return None
+            
+        # 检查vendor_type是否有效
+        if "vendor_type" in config_data:
+            try:
+                vendor_type = EmbeddingVendorType(config_data["vendor_type"])
+                config_data["vendor_type"] = vendor_type
+            except ValueError:
+                raise ValueError(f"无效的提供商类型: {config_data['vendor_type']}")
+                
+        # 如果设置为默认配置，先将同类型的所有配置设为非默认
+        if config_data.get("is_default", False) and not config.is_default:
+            default_configs = mysql_client.db.query(EmbeddingModelConfig).filter(
+                EmbeddingModelConfig.vendor_type == config.vendor_type,
+                EmbeddingModelConfig.is_default == True
+            ).all()
+            
+            for default_config in default_configs:
+                default_config.is_default = False
+        
+        # 更新字段
+        for key, value in config_data.items():
+            if hasattr(config, key):
+                setattr(config, key, value)
+                
+        config.updated_at = datetime.now()
+        
+        mysql_client.db.commit()
+        mysql_client.db.refresh(config)
+        
+        # 返回掩码处理后的结果
+        return self.get_embedding_config(config.id)
+    
+    def delete_embedding_config(self, config_id: int) -> bool:
+        """删除Embedding配置"""
+        mysql_client = MysqlClient()
+        config = mysql_client.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.id == config_id).first()
+        
+        if not config:
+            return False
+            
+        mysql_client.db.delete(config)
+        mysql_client.db.commit()
+        
+        return True
+    
+    # 新增设置默认模型配置的方法
+    def set_default_llm_config(self, config_id: int) -> Optional[Dict[str, Any]]:
+        """设置默认LLM模型配置"""
+        mysql_client = MysqlClient()
+        config = mysql_client.db.query(LLMProviderConfig).filter(LLMProviderConfig.id == config_id).first()
+        
+        if not config:
+            return None
+            
+        # 先将同类型的所有配置设为非默认
+        default_configs = mysql_client.db.query(LLMProviderConfig).filter(
+            LLMProviderConfig.vendor_type == config.vendor_type,
+            LLMProviderConfig.is_default == True
+        ).all()
+        
+        for default_config in default_configs:
+            default_config.is_default = False
+            
+        # 设置当前配置为默认
+        config.is_default = True
+        config.updated_at = datetime.now()
+        
+        mysql_client.db.commit()
+        
+        # 返回掩码处理后的结果
+        return self.get_llm_config(config.id)
+    
+    def set_default_embedding_config(self, config_id: int) -> Optional[Dict[str, Any]]:
+        """设置默认Embedding模型配置"""
+        mysql_client = MysqlClient()
+        config = mysql_client.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.id == config_id).first()
+        
+        if not config:
+            return None
+            
+        # 先将同类型的所有配置设为非默认
+        default_configs = mysql_client.db.query(EmbeddingModelConfig).filter(
+            EmbeddingModelConfig.vendor_type == config.vendor_type,
+            EmbeddingModelConfig.is_default == True
+        ).all()
+        
+        for default_config in default_configs:
+            default_config.is_default = False
+            
+        # 设置当前配置为默认
+        config.is_default = True
+        config.updated_at = datetime.now()
+        
+        mysql_client.db.commit()
+        
+        # 返回掩码处理后的结果
+        return self.get_embedding_config(config.id)
+    
+    # 获取默认配置的方法
+    def get_default_llm_config(self, vendor_type: str) -> Optional[Dict[str, Any]]:
+        """获取指定供应商类型的默认LLM配置"""
+        mysql_client = MysqlClient()
+        try:
+            vendor = LLMVendorType(vendor_type)
+            config = mysql_client.db.query(LLMProviderConfig).filter(
+                LLMProviderConfig.vendor_type == vendor,
+                LLMProviderConfig.is_default == True
+            ).first()
+            
+            if not config:
+                return None
+                
+            return self.get_llm_config(config.id)
+        except ValueError:
+            raise ValueError(f"无效的提供商类型: {vendor_type}")
+    
+    def get_default_embedding_config(self, vendor_type: str) -> Optional[Dict[str, Any]]:
+        """获取指定供应商类型的默认Embedding配置"""
+        mysql_client = MysqlClient()
+        try:
+            vendor = EmbeddingVendorType(vendor_type)
+            config = mysql_client.db.query(EmbeddingModelConfig).filter(
+                EmbeddingModelConfig.vendor_type == vendor,
+                EmbeddingModelConfig.is_default == True
+            ).first()
+            
+            if not config:
+                return None
+                
+            return self.get_embedding_config(config.id)
+        except ValueError:
+            raise ValueError(f"无效的提供商类型: {vendor_type}")
     
     
 if __name__ == "__main__":

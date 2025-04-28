@@ -7,9 +7,9 @@ from config.config_info import settings
 
 
 class RerankModel:
-    def __init__(self) -> None:
+    def __init__(self,base_url:str) -> None:
         # 设置请求的 URL
-        self.url = settings.RERANK_BASE_URL
+        self.url = base_url
 
         # 设置请求头
         self.headers = {

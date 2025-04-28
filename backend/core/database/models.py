@@ -146,13 +146,13 @@ class UserInfo(Base):
     status = Column(String(20), default='active') # 新增 status 字段，默认为 active
 
 class LLMVendorType(str, Enum):
-    OPENAI = "openai"
-    ONEAPI = "oneapi"
-    ZHIPUAI = "zhipuai"
-    SPARKAI = "sparkai"
-    DOUBAOAI = "doubaoai"
-    OLLAMA = "ollama"
-    SILICONFLOW = "siliconflow"
+    OPENAI = "OPENAI"
+    ONEAPI = "ONEAPI"
+    ZHIPUAI = "ZHIPUAI"
+    SPARKAI = "SPARKAI"
+    DOUBAOAI = "DOUBAOAI"
+    OLLAMA = "OLLAMA"
+    SILICONFLOW = "SILICONFLOW"
 
 class LLMProviderConfig(Base):
     __tablename__ = 'llm_provider_configs'
@@ -162,19 +162,19 @@ class LLMProviderConfig(Base):
     config = Column(JSON, nullable=True)  # 存储厂商专属配置
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    is_default = Column(Boolean, default=False, nullable=False) # 新增：标记是否为默认配置
-
+    is_default_chat = Column(Boolean, default=False, nullable=False) # 新增：标记是否为默认配置
+    is_default_splitter = Column(Boolean, default=False, nullable=False) # 新增：标记是否为默认配置
     # 通用字段（可选）
     base_url = Column(String, nullable=True)  # 多个厂商共用
     api_key = Column(String, nullable=True)  # 多个厂商共用
     model = Column(String, nullable=True)    # 多个厂商共用
 
 class EmbeddingVendorType(str, Enum):
-    OPENAI = "openai"
-    ONEAPI = "oneapi"
-    ZHIPUAI = "zhipuai"
-    DOUBAOAI = "doubaoai"
-    SILICONFLOW = "siliconflow"
+    OPENAI = "OPENAI"
+    ONEAPI = "ONEAPI"
+    ZHIPUAI = "ZHIPUAI"
+    DOUBAOAI = "DOUBAOAI"
+    SILICONFLOW = "SILICONFLOW"
 
 class EmbeddingModelConfig(Base):
     __tablename__ = 'embedding_model_configs'
