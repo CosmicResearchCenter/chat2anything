@@ -16,12 +16,18 @@ from .prompt_template.prompts import INSTRUCTIONS,SYSTEM,PROMPT_TEMPLATE,RESOLVE
 from .models.knolwedge_base import ResultByDoc
 from .utils.embedding_config import EmbeddingConfig
 import time
+from core.utils.utils import GetDeafultLLM,GetDefaultEmbedding
 class RAG_Pipeline:
-    def __init__(self):
+    def __init__(self):#,LLM_Provider:str,LLM_Model:str,Embedding_Provider:str,Embedding_Model:str):
         self.mysql_client = MysqlClient()
         self.es_client = ElasticClient()
         self.milvus_client = MilvusCollectionManager()
-        pass
+        # self.LLM_Provider:str = LLM_Provider
+        # self.LLM_Model:str = LLM_Model
+        # self.Embedding_Provider:str = Embedding_Provider
+        # self.Embedding_Model:str = Embedding_Model
+        self.default_llm_config = GetDeafultLLM()
+        self.default_embedding_config = GetDefaultEmbedding()
     #创建知识库
     def create_knowledgebase(self, knowledge_base_name: str,username:str="admin"):
         knowledge_base_id = self.mysql_client.AddKnowledgeBasesList(knowledge_base_name,username=username).knowledgeBaseId
@@ -44,13 +50,13 @@ class RAG_Pipeline:
         return split_file(file_path,splitter_args=splitter_args,splitterModel=splitterModel)
     
     #文档插入知识库
-    def insert_knowledgebase(self,file_path:str,docs:List[LcDocument], knowledge_base_id: str,doc_name:str,knowledge_doc_id:str):
+    def insert_knowledgebase(self,file_path:str,docs:List[LcDocument], knowledge_base_id: str,doc_name:str,knowledge_doc_id:str,Embedding_Provider:str,Embedding_Model:str):
 
         ### 插入数据库
         # print("插入数据库")
         #### 写入向量数据库
         print("写入向量数据库")
-        emb_model = EmbeddingManager().create_embedding(settings.EMBEDDING_MODEL_PROVIDER)
+        emb_model = EmbeddingManager().create_embedding(Embedding_Provider,Embedding_Model)
         mdata = []
         knowledge_doc_name = doc_name or os.path.basename(file_path)
         for doc in docs:
@@ -72,10 +78,10 @@ class RAG_Pipeline:
         print(f"成功插入 {success} 条数据，失败 {len(failed)} 条数据")
         # return success,failed
     #文档召回
-    def retriever_by_knowledgebase(self, question: str, knowledge_base_id: str, rag_model: int = 0):
+    def retriever_by_knowledgebase(self, question: str, knowledge_base_id: str,rag_model: int = 0):
         # 0 混合检索 1 向量检索 2 文档检索
         
-        embeddingMode = EmbeddingManager().create_embedding(settings.EMBEDDING_MODEL_PROVIDER)
+        embeddingMode = EmbeddingManager().create_embedding(self.default_embedding_config.vendor_type,self.default_embedding_config.model)
         vector = embeddingMode.embed_with_str(question, "query")
         
         result: List[SourceDocument] = []
@@ -165,7 +171,7 @@ class RAG_Pipeline:
         return resultByDoc
     
     #生成回答
-    def generate_answer_by_knowledgebase(self,resultByDoc:ResultByDoc,history_messages=[],streaming=False):
+    def generate_answer_by_knowledgebase(self,resultByDoc:ResultByDoc,LLM_Provider:str,LLM_Model:str,history_messages=[],streaming=False):
         print("generate_answer_by_knowledgebase")
         print(history_messages)
         prompt_source =""
@@ -175,7 +181,7 @@ class RAG_Pipeline:
             """
 
 
-        llm = LLM_Manager().creatLLM(mode_provider=settings.LLM_PROVIDER)
+        llm = LLM_Manager().creatLLM(mode_provider=LLM_Provider,model=LLM_Model)
 
         prompt_system = PromptTemplate(
             template=SYSTEM,
