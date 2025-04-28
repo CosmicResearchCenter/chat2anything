@@ -5,7 +5,7 @@ from config.config_info import settings
 from config.splitter_model import SplitterModel
 from .utils.split_file import split_file
 from .models.source_document import SourceDocument,SourceDocumentReRanked
-from core.llm import LLM,LLM_Manager,RerankModel
+from core.llm import LLM,LLM_Manager
 from core.rag.models.document import Document
 from langchain_core.documents import Document as LcDocument
 from core.rag.database.mysql.model import KnowledgeBase
@@ -122,8 +122,7 @@ class RAG_Pipeline:
     # ReRank评估
     def re_rank(self,question:str,documents: list[Document], score_threshold: Optional[float] = None,
             top_n: Optional[int] = None):
-        rerank_model = RerankModel()
-        rerank_runner = RerankRunner(rerank_model)
+        rerank_runner = RerankRunner()
         rerank_result = rerank_runner.run(question, documents, score_threshold=score_threshold, top_n=top_n)
 
         
@@ -147,7 +146,7 @@ class RAG_Pipeline:
         source_docs_result:List[SourceDocumentReRanked] = []
         # ReRank评估
         if is_rerank:
-            rerank_result = self.re_rank(question=question,documents=documents,score_threshold=0.001,top_n=4)
+            rerank_result = self.re_rank(question=question,documents=documents,score_threshold=0.01,top_n=4)
             for result in rerank_result:
                 # prompt_source += f"""
                 # {result.page_content}\n

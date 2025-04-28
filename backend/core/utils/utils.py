@@ -7,7 +7,12 @@ import jwt
 import datetime
 from pydantic import BaseModel
 from passlib.context import CryptContext
-from core.database.models import UserInfo,LLMProviderConfig,LLMVendorType,EmbeddingModelConfig,EmbeddingVendorType
+from core.database.models import (UserInfo,
+                                  LLMProviderConfig,
+                                  LLMVendorType,
+                                  EmbeddingModelConfig,
+                                  EmbeddingVendorType,
+                                  ReRankModelConfig)
 from models.general_models import GenericResponse
 from core.database.mysql_client import MysqlClient
 SECRET_KEY = settings.SECRET_KEY
@@ -94,3 +99,13 @@ def GetDefaultEmbedding()->EmbeddingModelConfig:
         return
 
     return embedding_config   
+
+def GetDefaultReRank()->ReRankModelConfig:
+    db_client = MysqlClient()
+
+    rerank_config = db_client.db.query(ReRankModelConfig).filter(ReRankModelConfig.is_default == True).first()
+
+    if rerank_config is  None:
+        return
+
+    return rerank_config   

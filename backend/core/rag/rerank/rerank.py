@@ -1,13 +1,14 @@
 from typing import Optional,List
 
-from core.llm.rerankmodel import RerankModel
+from core.llm.siliconflow_rerank import SiliconFlowRerankModel
 from core.rag.models.document import Document
 from core.models.rerank_models import RerankDocument, RerankResult
-
-
+from core.llm.rerank_manager import ReRank_Manager
+from core.llm.rerank import ReRankModel
+from core.utils.utils import GetDefaultReRank
 class RerankRunner:
-    def __init__(self, rerank_model_instance: RerankModel) -> None:
-        self.rerank_model_instance = rerank_model_instance
+    def __init__(self) -> None:
+        self.rerank_model_config = GetDefaultReRank()
 
     def run(self, query: str, documents: List[Document], score_threshold: Optional[float] = None,
             top_n: Optional[int] = None, user: Optional[str] = None) -> List[Document]:
@@ -31,12 +32,12 @@ class RerankRunner:
 
         documents = unique_documents
         # print(len(docs))
-        rerank_result:RerankResult = self.rerank_model_instance.invoke_rerank(
+        rerank_model_instance:ReRankModel = ReRank_Manager().creatRerank(mode_provider=self.rerank_model_config.vendor_type,model=self.rerank_model_config.model)
+        rerank_result:RerankResult = rerank_model_instance.invoke_rerank(
             query=query,
             documents=docs,
             score_threshold=score_threshold,
             top_n=top_n,
-            # user=user
         )
 
         rerank_documents = []
@@ -59,8 +60,4 @@ class RerankRunner:
         return rerank_documents
 
 if __name__ == '__main__':
-    from core.llm.rerankmodel import RerankModel
-    # rerank_model = RerankModel(url='http://10.116.123.30:9997/v1/rerank', headers={'Content-Type': 'application/json'})
-    rerank_model = RerankModel()
-    runner = RerankRunner(rerank_model)
-    # documents = 
+    pass

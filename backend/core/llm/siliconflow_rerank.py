@@ -3,21 +3,22 @@ import json
 from typing import List, Optional
 from core.models.rerank_models import RerankDocument, RerankResult
 from config.config_info import settings
+from core.llm.rerank import ReRankModel
 
 
-
-class RerankModel:
-    def __init__(self,base_url:str) -> None:
+class SiliconFlowRerankModel(ReRankModel):
+    def __init__(self,base_url:str,api_key:str,model:str) -> None:
         # 设置请求的 URL
         self.url = base_url
-
+        self.model = model
         # 设置请求头
         self.headers = {
+            "Authorization": f"Bearer {api_key}",
             'accept': 'application/json',
             'Content-Type': 'application/json'
         }
     
-    def invoke_rerank(self, query: str, documents: List[str], model_uid: str="bge-reranker-large",
+    def invoke_rerank(self, query: str, documents: List[str],
                       score_threshold: Optional[float] = None, top_n: Optional[int] = None) -> RerankResult:
         """
         Invoke rerank model
@@ -30,12 +31,12 @@ class RerankModel:
         :return: rerank result
         """
         if len(documents) == 0:
-            return RerankResult(model=model_uid, docs=[])
+            return RerankResult(model=self.model, docs=[])
 
         # 设置请求体
         
         data = {
-            "model": model_uid,
+            "model": self.model,
             "query": query,
             "documents": documents,
             "top_n": top_n
@@ -69,12 +70,12 @@ class RerankModel:
                 rerank_documents.append(rerank_document)
 
         return RerankResult(
-            model=model_uid,
+            model=self.model,
             docs=rerank_documents
         )
 
 if __name__ == "__main__":
-    rerank_model = RerankModel()
+    rerank_model = SiliconFlowRerankModel(base_url="https://api.siliconflow.cn/v1/rerank",api_key="sk-xxx")
     query = "学校有几个食堂"
     documents = [
         "学校有3个食堂",
@@ -85,7 +86,7 @@ if __name__ == "__main__":
     ]
 
     # 定义可选参数
-    model_uid = "bge-reranker-large"
+    model_uid = "BAAI/bge-reranker-v2-m3"
     score_threshold = 0.5  # 设定得分阈值
     top_n = 3  # 获取前 N 个结果
 
