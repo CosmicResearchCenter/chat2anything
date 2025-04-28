@@ -4,7 +4,7 @@
 
 from fastapi import APIRouter,File, UploadFile,Form,BackgroundTasks,Depends
 from starlette.responses import StreamingResponse
-from models.chat_models import ChatMessageRequest,KnowledgeBaseSelectRequest,ChatClearResponse,KnowledgeBaseSelectResponse,ChatMessageResponse,ChatMessageHistoryResponse,ConversationCreateRequest,ConversationCreateResponse,ChatConversationResponse,ReNameRequest,ReNameResponse,DeleteConversationResponse,ConversationTitleCreateResponse,ConversationTitleCreateRequest
+from api.chat.chat_models import ChatMessageRequest,KnowledgeBaseSelectRequest,ChatClearResponse,KnowledgeBaseSelectResponse,ChatMessageResponse,ChatMessageHistoryResponse,ConversationCreateRequest,ConversationCreateResponse,ChatConversationResponse,ReNameRequest,ReNameResponse,DeleteConversationResponse,ConversationTitleCreateResponse,ConversationTitleCreateRequest
 from core.rag.rag_pipeline import RAG_Pipeline
 from services.chat.chat import Chat
 from core.database.models import Chat_Messages
@@ -29,7 +29,7 @@ def chat(query: ChatMessageRequest,username: str = Depends(get_current_user)):
     if not conversation_id:
         return ChatMessageResponse(code=400,message="Conversation id is required")
     
-    chat:Chat = Chat(conversation_id,username,rag)
+    chat:Chat = Chat(conversation_id,username,rag,llm_config=query.llm_info)
 
     try:
         if query.streaming:
