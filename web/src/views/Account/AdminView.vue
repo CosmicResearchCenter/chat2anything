@@ -279,7 +279,7 @@ watch(
           <div
             class="sidebar-access-card"
             v-for="(item, idx) in [
-              { title: '模型配置管理', desc: '管理所有用户', icon: 'Setting', path: 'models', color: '#13c2c2' },
+                { title: '模型配置管理', desc: '管理所有用户', icon: 'Platform', path: 'models', color: '#13c2c2' },
               { title: '对话管理', desc: '查看所有用户对话记录', icon: 'ChatLineSquare', path: 'chat', color: '#1677ff' },
               { title: '知识库管理', desc: '管理用户知识库文档', icon: 'Collection', path: 'base', color: '#722ed1' },
               { title: '用户管理', desc: '管理所有用户', icon: 'Setting', path: 'user', color: '#13c2c2' }
@@ -560,7 +560,8 @@ watch(
   flex-direction: column;
   gap: 24px;
   min-width: 0; /* 防止溢出 */
-  overflow: hidden;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px); /* 设置最大高度以确保可滚动 */
 }
 
 .dashboard-stats {
