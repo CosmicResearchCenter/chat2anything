@@ -80,8 +80,8 @@ class RAG_Pipeline:
     #文档召回
     def retriever_by_knowledgebase(self, question: str, knowledge_base_id: str,rag_model: int = 0):
         # 0 混合检索 1 向量检索 2 文档检索
-        
-        embeddingMode = EmbeddingManager().create_embedding(self.default_embedding_config.vendor_type,self.default_embedding_config.model)
+        print(self.default_embedding_config.vendor_type)
+        embeddingMode = EmbeddingManager().create_embedding(embedding_provider=self.default_embedding_config.vendor_type,model=self.default_embedding_config.model)
         vector = embeddingMode.embed_with_str(question, "query")
         
         result: List[SourceDocument] = []

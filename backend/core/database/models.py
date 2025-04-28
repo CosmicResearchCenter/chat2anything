@@ -185,7 +185,6 @@ class EmbeddingModelConfig(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_default = Column(Boolean, default=False, nullable=False) # 新增：标记是否为默认配置
-
     # 通用字段（可选）
     base_url = Column(String, nullable=True)  # 多个厂商共用
     api_key = Column(String, nullable=True)  # 多个厂商共用

@@ -1,5 +1,6 @@
 from core.rag.embedding.embedding_manager import EmbeddingManager
 from config.config_info import settings
+from core.utils.utils import GetDefaultEmbedding
 
 class EmbeddingConfig:
     def __init__(self):
@@ -7,7 +8,8 @@ class EmbeddingConfig:
     
     def get_dim(self)->int:
         """获取向量维度"""
-        embedding_client = EmbeddingManager().create_embedding(settings.EMBEDDING_MODEL_PROVIDER)
+        config = GetDefaultEmbedding()
+        embedding_client = EmbeddingManager().create_embedding(embedding_provider=config.vendor_type,model=config.model)
         
         text = "获取向量维度"
         vector = embedding_client.embed_with_str(text, "query")

@@ -411,7 +411,7 @@ async def update_llm_config(
 ):
     try:
         admin_service = AdminService()
-        config = admin_service.update_llm_config(config_id, config_data.dict(exclude_unset=True))
+        config = admin_service.update_llm_config(config_id, config_data.dict())
         
         if not config:
             raise HTTPException(
@@ -573,13 +573,33 @@ async def delete_embedding_config(
 # ---------- 默认模型配置管理接口 ----------
 
 # 设置默认LLM模型配置
-@router.post("/llm_configs/{config_id}/set_default", response_model=ResponseGenral)
+@router.post("/llm_configs/{config_id}/set_default_chat", response_model=ResponseGenral)
 async def set_default_llm_config(
     config_id: int = Path(..., description="配置ID"),
     username: str = Depends(get_is_admin)
 ):
     admin_service = AdminService()
-    config = admin_service.set_default_llm_config(config_id)
+    config = admin_service.set_default_llm_chat_config(config_id)
+    
+    if not config:
+        raise HTTPException(
+            status_code=404,
+            detail="找不到指定的LLM配置"
+        )
+        
+    return ResponseGenral(
+        code=200,
+        message="设置默认LLM配置成功",
+        data=[config]
+    )
+
+@router.post("/llm_configs/{config_id}/set_default_splitter", response_model=ResponseGenral)
+async def set_default_llm_config(
+    config_id: int = Path(..., description="配置ID"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    config = admin_service.set_default_llm_splitter_config(config_id)
     
     if not config:
         raise HTTPException(

@@ -278,8 +278,8 @@ class KBase(MysqlClient):
         knowledgeBaseName = knowledgeBase.knowledgeBaseName
         config = self.db.query(KnowledgeConfig).filter(KnowledgeConfig.knowledgeBaseId == base_id).first()
 
-        embedding_info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.is_default == True).first()  
-        embedding_info:EmbeddingInfo = EmbeddingInfo(embedding_model=embedding_info.model, embedding_provider=embedding_info.vendor_type)
+        # embedding_info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.is_default == True).first()  
+        # embedding_info:EmbeddingInfo = EmbeddingInfo(embedding_model=embedding_info.model, embedding_provider=embedding_info.vendor_type)
         if not config:
             raise HTTPException(status_code=404, detail="KnowledgeBase config not found")
         
@@ -288,7 +288,7 @@ class KBase(MysqlClient):
                                    rag_model=config.rag_model,
                                    is_rerank=config.is_rerank,
                                    is_public=knowledgeBase.is_public,
-                                   embedding_info=embedding_info)
+                                   )
     # 更新知识库配置信息
     @check_kb_owner_decorator
     def update_kb_config(self, base_id:str,username:str,config:KnowledgeBaseConfig)->GenericResponse:

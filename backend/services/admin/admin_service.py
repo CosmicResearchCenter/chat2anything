@@ -749,7 +749,8 @@ class AdminService:
                 "base_url": config.base_url,
                 "api_key_masked": api_key_masked,
                 "config": config.config,
-                "is_default": config.is_default,
+                "is_default_chat": config.is_default_chat,
+                "is_default_splitter": config.is_default_splitter,
                 "created_at": config.created_at.isoformat() if config.created_at else None,
                 "updated_at": config.updated_at.isoformat() if config.updated_at else None
             })
@@ -836,7 +837,7 @@ class AdminService:
         """更新LLM配置"""
         mysql_client = MysqlClient()
         config = mysql_client.db.query(LLMProviderConfig).filter(LLMProviderConfig.id == config_id).first()
-        
+
         if not config:
             return None
             
@@ -849,15 +850,22 @@ class AdminService:
                 raise ValueError(f"无效的提供商类型: {config_data['vendor_type']}")
                 
         # 如果设置为默认配置，先将同类型的所有配置设为非默认
-        if config_data.get("is_default", False) and not config.is_default:
+        if config_data.get("is_default_chat", False) and not config.is_default_chat:
+            default_configs_c = mysql_client.db.query(LLMProviderConfig).filter(
+                LLMProviderConfig.vendor_type == config.vendor_type,
+                LLMProviderConfig.is_default_chat == True
+            ).all()
+            
+            for default_config in default_configs_c:
+                default_config.is_default_chat = False
+        if config_data.get("is_default_splitter", False) and not config.is_default_splitter:
             default_configs = mysql_client.db.query(LLMProviderConfig).filter(
                 LLMProviderConfig.vendor_type == config.vendor_type,
-                LLMProviderConfig.is_default == True
+                LLMProviderConfig.is_default_splitter == True
             ).all()
             
             for default_config in default_configs:
-                default_config.is_default = False
-        
+                default_config.is_default_splitter = False
         # 更新字段
         for key, value in config_data.items():
             if hasattr(config, key):
@@ -1035,7 +1043,7 @@ class AdminService:
         return True
     
     # 新增设置默认模型配置的方法
-    def set_default_llm_config(self, config_id: int) -> Optional[Dict[str, Any]]:
+    def set_default_llm_splitter_config(self, config_id: int) -> Optional[Dict[str, Any]]:
         """设置默认LLM模型配置"""
         mysql_client = MysqlClient()
         config = mysql_client.db.query(LLMProviderConfig).filter(LLMProviderConfig.id == config_id).first()
@@ -1046,14 +1054,14 @@ class AdminService:
         # 先将同类型的所有配置设为非默认
         default_configs = mysql_client.db.query(LLMProviderConfig).filter(
             LLMProviderConfig.vendor_type == config.vendor_type,
-            LLMProviderConfig.is_default == True
+            LLMProviderConfig.is_default_splitter == True
         ).all()
         
         for default_config in default_configs:
-            default_config.is_default = False
+            default_config.is_default_splitter = False
             
         # 设置当前配置为默认
-        config.is_default = True
+        config.is_default_splitter = True
         config.updated_at = datetime.now()
         
         mysql_client.db.commit()
@@ -1061,6 +1069,32 @@ class AdminService:
         # 返回掩码处理后的结果
         return self.get_llm_config(config.id)
     
+    def set_default_llm_chat_config(self, config_id: int) -> Optional[Dict[str, Any]]:
+        """设置默认LLM模型配置"""
+        mysql_client = MysqlClient()
+        config = mysql_client.db.query(LLMProviderConfig).filter(LLMProviderConfig.id == config_id).first()
+        
+        if not config:
+            return None
+            
+        # 先将同类型的所有配置设为非默认
+        default_configs = mysql_client.db.query(LLMProviderConfig).filter(
+            LLMProviderConfig.vendor_type == config.vendor_type,
+            LLMProviderConfig.is_default_chat == True
+        ).all()
+        
+        for default_config in default_configs:
+            default_config.is_default_chat = False
+            
+        # 设置当前配置为默认
+        config.is_default_chat = True
+        config.updated_at = datetime.now()
+        
+        mysql_client.db.commit()
+        
+        # 返回掩码处理后的结果
+        return self.get_llm_config(config.id)
+     
     def set_default_embedding_config(self, config_id: int) -> Optional[Dict[str, Any]]:
         """设置默认Embedding模型配置"""
         mysql_client = MysqlClient()

@@ -88,7 +88,7 @@ def GetDeafultLLM_Splitter()->LLMProviderConfig:
 def GetDefaultEmbedding()->EmbeddingModelConfig:
     db_client = MysqlClient()
 
-    embedding_config = db_client.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.is_default == True).filter()
+    embedding_config = db_client.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.is_default == True).first()
 
     if embedding_config is  None:
         return

@@ -69,7 +69,7 @@ class LLMConfigCreate(LLMConfigBase):
     pass
 
 class LLMConfigUpdate(LLMConfigBase):
-    id: int
+    pass
 
 class LLMConfigResponse(BaseModel):
     id: int
@@ -78,7 +78,8 @@ class LLMConfigResponse(BaseModel):
     base_url: Optional[str] = None
     api_key_masked: Optional[str] = None  # API密钥会被掩码处理
     config: Optional[dict] = None
-    is_default: bool
+    is_default_chat: bool
+    is_default_splitter: bool
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 

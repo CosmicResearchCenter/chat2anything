@@ -250,6 +250,7 @@ content: {item['content']}
             kb_config = KBase().get_kb_config(knowledgebase.knowledgeBaseId,username)
             
             # 获取检索文档
+            print("检索文档")
             resultByDoc: ResultByDoc = self.get_retrieve_documents(question=message, knowledgebase_id=knowledgebase.knowledgeBaseId,rag_model=kb_config.rag_model,is_rerank=kb_config.is_rerank)
 
             # 保存对话记录
