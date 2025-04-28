@@ -7,7 +7,7 @@ import jwt
 import datetime
 from pydantic import BaseModel
 from passlib.context import CryptContext
-from core.database.models import UserInfo
+from core.database.models import UserInfo,LLMProviderConfig,LLMVendorType,EmbeddingModelConfig,EmbeddingVendorType
 from models.general_models import GenericResponse
 from core.database.mysql_client import MysqlClient
 SECRET_KEY = settings.SECRET_KEY
@@ -65,3 +65,23 @@ async def get_is_admin(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not admin")
     
     return GenericResponse(message="获取成功",code=200,data=[{'is_admin':user.is_admin,'username':user.username}])
+
+
+def GetDeafultLLM()->LLMProviderConfig:
+    db_client = MysqlClient()
+    llm_config = db_client.db.query(LLMProviderConfig).filter(LLMProviderConfig.is_default == True).first()
+
+    if llm_config is  None:
+        return
+    
+    return llm_config
+
+def GetDefaultEmbedding()->EmbeddingModelConfig:
+    db_client = MysqlClient()
+
+    embedding_config = db_client.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.is_default == True).filter()
+
+    if embedding_config is  None:
+        return
+
+    return embedding_config   

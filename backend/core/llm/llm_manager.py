@@ -38,7 +38,7 @@ class LLM_Provider(Enum):
 
 
 class LLM_Manager:
-    def creatLLM(self, mode_provider: str) -> LLM:
+    def creatLLM(self, mode_provider: str,model:str) -> LLM:
         try:
             lLM_Provider = LLM_Provider.get_llm(mode_provider)
         except ValueError as e:
@@ -46,38 +46,38 @@ class LLM_Manager:
 
         # 根据提供商类型加载并检查配置
         if lLM_Provider == LLM_Provider.DOUBAO:
-            config = DouBaoAI_Config()
+            config = DouBaoAI_Config(model=model)
             if not config.API_KEY or not config.BASE_URL or not config.MODEL:
                 raise ValueError(f"豆包（DOUBAO）的配置信息不完整或未设置。请检查数据库。")
             return DouBaoLLM(api_key=config.API_KEY, base_url=config.BASE_URL, model=config.MODEL)
 
         elif lLM_Provider == LLM_Provider.OPENAI:
-            config = OpenAI_Config()
+            config = OpenAI_Config(model=model)
             if not config.API_KEY: # 至少需要 API Key
                 raise ValueError(f"OpenAI 的配置信息不完整或未设置（缺少 API Key）。请检查数据库。")
 
             return OpenAILLM(api_key=config.API_KEY, base_url=config.BASE_URL, model=config.MODEL)
 
         elif lLM_Provider == LLM_Provider.ZHIPUAI:
-            config = ZhiPuAI_Config()
+            config = ZhiPuAI_Config(model=model)
             if not config.API_KEY or not config.MODEL:
                 raise ValueError(f"智谱AI（ZHIPUAI）的配置信息不完整或未设置。请检查数据库。")
             return ZhiPuAI_LLM(api_key=config.API_KEY, model=config.MODEL)
 
         elif lLM_Provider == LLM_Provider.SPARKAI:
-            config = SparkAI_Config()
+            config = SparkAI_Config(model=model)
             if not config.APP_ID or not config.API_SECRET or not config.API_KEY or not config.BASE_URL or not config.DOMAIN:
                 raise ValueError(f"讯飞星火（SPARKAI）的配置信息不完整或未设置。请检查数据库。")
             return SparkAILLM(app_id=config.APP_ID, api_secret=config.API_SECRET, api_key=config.API_KEY, base_url=config.BASE_URL, domain=config.DOMAIN)
 
         elif lLM_Provider == LLM_Provider.ONEAPI:
-            config = OneAPI_Config()
+            config = OneAPI_Config(model=model)
             if not config.API_KEY or not config.BASE_URL or not config.MODEL:
                  raise ValueError(f"OneAPI 的配置信息不完整或未设置。请检查数据库。")
             return OneApiLLM(api_key=config.API_KEY, base_url=config.BASE_URL, model=config.MODEL)
 
         elif lLM_Provider == LLM_Provider.SILICONFLOW:
-            config = SILICONFLOW_Config()
+            config = SILICONFLOW_Config(model=model)
             if not config.API_KEY or not config.BASE_URL or not config.MODEL:
                 raise ValueError(f"SiliconFlow 的配置信息不完整或未设置。请检查数据库。")
             return SiliconFlowLLM(api_key=config.API_KEY, base_url=config.BASE_URL, model=config.MODEL)

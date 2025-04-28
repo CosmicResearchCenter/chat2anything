@@ -162,6 +162,7 @@ class LLMProviderConfig(Base):
     config = Column(JSON, nullable=True)  # 存储厂商专属配置
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_default = Column(Boolean, default=False, nullable=False) # 新增：标记是否为默认配置
 
     # 通用字段（可选）
     base_url = Column(String, nullable=True)  # 多个厂商共用
@@ -183,6 +184,7 @@ class EmbeddingModelConfig(Base):
     config = Column(JSON, nullable=False)  # 存储厂商专属配置
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_default = Column(Boolean, default=False, nullable=False) # 新增：标记是否为默认配置
 
     # 通用字段（可选）
     base_url = Column(String, nullable=True)  # 多个厂商共用
