@@ -1,7 +1,7 @@
 from core.llm import LLM,LLM_Manager
 from core.database.mysql_client import MysqlClient
 from core.database.models import Conversation,KnowledgeBase,Chat_Messages,RetrieverDoc 
-from models.chat_models import ChatMessageRequest
+from api.chat.chat_models import ChatMessageRequest,LLMConfig
 from core.rag.rag_pipeline import RAG_Pipeline
 from core.rag.models.knolwedge_base import ResultByDoc
 from services.chat.chat_type import ChatMessageHistory,RetrieverDoc as RetrieverDocs
@@ -11,14 +11,16 @@ from services.knowledgebase.knowledgebase_service import KBase
 from fastapi import HTTPException
 import datetime
 from typing import List
-
+from core.utils.utils import GetDeafultLLM,GetDefaultEmbedding
 class Chat:
-    def __init__(self, conversation_id,user_id,rag:RAG_Pipeline):
+    def __init__(self, conversation_id,user_id,rag:RAG_Pipeline,llm_config:LLMConfig,embedding_config):
         self.conversation_id = conversation_id
         self.user_id = user_id
         self.mysql_session = MysqlClient().SessionLocal()
         self.rag:RAG_Pipeline  = rag
-    
+        self.llm_config:LLMConfig = llm_config
+        self.default_llm_config = GetDeafultLLM()
+        self.default_embedding_config = GetDefaultEmbedding()
     def __del__(self):
         self.mysql_session.close()
     #创建对话
@@ -58,7 +60,7 @@ class Chat:
             print(f"Erreor:{e}")
     # 生成对话标题
     def generate_conversation_title(self, conversation_id,username:str)->str:
-        llm = LLM_Manager().creatLLM(settings.LLM_PROVIDER)
+        llm = LLM_Manager().creatLLM(mode_provider=self.default_llm_config.vendor_type,model=self.default_llm_config.model)
                 
         conversation_messages = self.load_conversation(conversation_id,username=username)
         messageLogs = self.format_conversation_Log(conversation_messages)
@@ -204,7 +206,7 @@ content: {item['content']}
     def answer_question(self, resultByDoc: ResultByDoc,history_message=[],streaming=False):
         # rAG_Pipeline = RAG_Pipeline()
             
-        answer = self.rag.generate_answer_by_knowledgebase(resultByDoc=resultByDoc,history_messages=history_message,streaming=streaming)
+        answer = self.rag.generate_answer_by_knowledgebase(resultByDoc=resultByDoc,history_messages=history_message,streaming=streaming,LLM_Model=self.llm_config.model,LLM_Provider=self.llm_config.LLM_Provider)
         if isinstance(answer, str):
             print(answer)
             print("answer")
