@@ -156,8 +156,6 @@ services:
       - chat2anything_backend
     networks:
       - chat2network
-    ports:
-      - "12345:80"
     environment:
       - VITE_APP_BASE_URL=/api
     env_file:
