@@ -3,6 +3,7 @@ from starlette.middleware.cors import CORSMiddleware
 from api import AccountRouter,ChatRouter,KnowledgeBaseRouter,AdminRouter
 from core.database.mysql_client import MysqlClient
 from core.database.models import Base
+from config.config_info import settings
 origins = [
     "*"
 ]
@@ -38,8 +39,20 @@ router.include_router(AdminRouter, prefix="/admin", tags=["mark", "admin"])
 app.include_router(router, prefix="/v1/api/mark", tags=["mark"])
 @app.on_event("startup")
 async def startup():
-    mysql_client = MysqlClient()
-    Base.metadata.create_all(mysql_client.engine)
+    try:
+        user = settings.MYSQL_USER
+        password = settings.MYSQL_PASSWORD
+        ip = settings.MYSQL_IP
+        port = settings.MYSQL_PORT
+        basename = settings.MYSQL_BASE
+
+        # 数据库设置
+        DATABASE_URL = f"mysql+pymysql://{user}:{password}@{ip}:{port}/{basename}"
+        mysql_client = MysqlClient(database_url=DATABASE_URL)
+        Base.metadata.create_all(mysql_client.engine)
+        print("数据库表创建成功")
+    except Exception as e:
+        print(f"数据库表创建失败: {e}")
 if __name__ == "__main__":
   
 #   print(config.config.DOCS_PATH)
