@@ -14,7 +14,7 @@
 
     <!-- 主内容卡片 -->
     <el-card class="main-card">
-      <!-- LLM和Embedding切换标签 -->
+      <!-- LLM、Embedding和ReRank切换标签 -->
       <el-tabs v-model="activeTab" @tab-click="handleTabClick" class="config-tabs">
         <el-tab-pane label="LLM 模型配置" name="llm">
           <div class="tab-header">
@@ -201,13 +201,96 @@
             <el-button type="primary" @click="openCreateDialog('embedding')">添加第一个配置</el-button>
           </div>
         </el-tab-pane>
+
+        <el-tab-pane label="ReRank 模型配置" name="rerank">
+          <div class="tab-header">
+            <div class="left-section">
+              <div class="tab-title">ReRank模型配置列表</div>
+              <el-input
+                v-model="rerankSearchText"
+                placeholder="搜索模型名称或供应商"
+                class="search-input"
+                clearable
+                prefix-icon="Search"
+              />
+            </div>
+            <el-button type="primary" @click="openCreateDialog('rerank')">
+              <el-icon><Plus /></el-icon>添加ReRank配置
+            </el-button>
+          </div>
+          
+          <!-- ReRank配置列表 -->
+          <el-table 
+            :data="filteredRerankConfigs" 
+            stripe 
+            v-loading="loading.rerank"
+            empty-text="暂无ReRank模型配置数据"
+            class="config-table"
+          >
+            <el-table-column prop="id" label="ID" width="60" align="center" />
+            <el-table-column prop="vendor_type" label="供应商" width="120">
+              <template #default="scope">
+                <el-tag size="small" :type="getVendorTagType(scope.row.vendor_type)">
+                  {{ scope.row.vendor_type }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="model" label="模型名称" min-width="140" show-overflow-tooltip />
+            <el-table-column prop="base_url" label="基础URL" min-width="180" show-overflow-tooltip />
+            <el-table-column prop="api_key_masked" label="API密钥" width="120" show-overflow-tooltip />
+            <el-table-column label="默认配置" width="90" align="center">
+              <template #default="scope">
+                <el-switch 
+                  :model-value="scope.row.is_default" 
+                  disabled 
+                  active-color="#13ce66" 
+                  inactive-color="#dcdfe6"
+                />
+              </template>
+            </el-table-column>
+            <el-table-column label="创建时间" width="150" show-overflow-tooltip>
+              <template #default="scope">
+                {{ formatDate(scope.row.created_at) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="160" fixed="right">
+              <template #default="scope">
+                <el-tooltip content="编辑配置" placement="top" :hide-after="1500">
+                  <el-button type="primary" link @click="editConfig('rerank', scope.row)">
+                    <el-icon><Edit /></el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="设为默认" placement="top" :hide-after="1500">
+                  <el-button 
+                    type="success" 
+                    link 
+                    @click="confirmSetDefault('rerank', scope.row.id)" 
+                    :disabled="scope.row.is_default"
+                  >
+                    <el-icon><Check /></el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="删除配置" placement="top" :hide-after="1500">
+                  <el-button type="danger" link @click="confirmDelete('rerank', scope.row)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </el-tooltip>
+              </template>
+            </el-table-column>
+          </el-table>
+          
+          <div class="empty-placeholder" v-if="filteredRerankConfigs.length === 0 && !loading.rerank">
+            <el-empty description="暂无ReRank模型配置数据" />
+            <el-button type="primary" @click="openCreateDialog('rerank')">添加第一个配置</el-button>
+          </div>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
 
     <!-- 创建/编辑配置对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="dialogType === 'create' ? `添加${configType === 'llm' ? 'LLM' : 'Embedding'}配置` : `编辑${configType === 'llm' ? 'LLM' : 'Embedding'}配置`"
+      :title="dialogType === 'create' ? `添加${configType === 'llm' ? 'LLM' : configType === 'embedding' ? 'Embedding' : 'ReRank'}配置` : `编辑${configType === 'llm' ? 'LLM' : configType === 'embedding' ? 'Embedding' : 'ReRank'}配置`"
       width="600px"
       destroy-on-close
       :close-on-click-modal="false"
@@ -286,6 +369,14 @@
             <div class="form-tip">设置为默认Embedding模型</div>
           </el-form-item>
         </template>
+
+        <!-- ReRank 特有设置 -->
+        <template v-if="configType === 'rerank'">
+          <el-form-item label="设为默认" prop="is_default">
+            <el-switch v-model="configForm.is_default" />
+            <div class="form-tip">设置为默认ReRank模型</div>
+          </el-form-item>
+        </template>
       </el-form>
       
       <template #footer>
@@ -349,15 +440,17 @@ import { getRequest, postRequest, putRequest, deleteRequest } from '@/utils/http
 const activeTab = ref('llm');
 const llmConfigs = ref<any[]>([]);
 const embeddingConfigs = ref<any[]>([]);
+const rerankConfigs = ref<any[]>([]);
 const dialogVisible = ref(false);
 const dialogType = ref<'create' | 'edit'>('create');
-const configType = ref<'llm' | 'embedding'>('llm');
+const configType = ref<'llm' | 'embedding' | 'rerank'>('llm');
 const deleteDialogVisible = ref(false);
 const setDefaultDialogVisible = ref(false);
 const currentConfig = ref<any>(null);
 const defaultSettingType = ref<'chat' | 'splitter' | null>(null);
 const llmSearchText = ref('');
 const embeddingSearchText = ref('');
+const rerankSearchText = ref('');
 
 // 过滤后的配置列表
 const filteredLlmConfigs = computed(() => {
@@ -380,9 +473,21 @@ const filteredEmbeddingConfigs = computed(() => {
   );
 });
 
+// ReRank过滤后的配置列表
+const filteredRerankConfigs = computed(() => {
+  if (!rerankSearchText.value) return rerankConfigs.value;
+  
+  const searchTerm = rerankSearchText.value.toLowerCase();
+  return rerankConfigs.value.filter(config => 
+    config.model.toLowerCase().includes(searchTerm) || 
+    config.vendor_type.toLowerCase().includes(searchTerm)
+  );
+});
+
 // 获取默认类型文本描述
 const getDefaultTypeText = computed(() => {
   if (configType.value === 'embedding') return 'Embedding模型';
+  if (configType.value === 'rerank') return 'ReRank模型';
   if (defaultSettingType.value === 'chat') return '对话模型';
   if (defaultSettingType.value === 'splitter') return '拆分模型';
   return '模型';
@@ -445,6 +550,7 @@ const configRules = {
 const loading = reactive({
   llm: false,
   embedding: false,
+  rerank: false,
   submit: false,
   delete: false,
   setDefault: false
@@ -453,7 +559,8 @@ const loading = reactive({
 // 可用的供应商类型
 const availableVendors = {
   llm: ['OPENAI', 'DOUBAO', 'ZHIPUAI', 'SPARKAI', 'ONEAPI', 'SILICONFLOW'],
-  embedding: ['OPENAI', 'ONEAPI', 'ZHIPUAI', 'DOUBAO', 'SILICONFLOW']
+  embedding: ['OPENAI', 'ONEAPI', 'ZHIPUAI', 'DOUBAO', 'SILICONFLOW'],
+  rerank: ['SILICONFLOW', 'COHERE', 'BGEAI']
 };
 
 // 处理标签页切换
@@ -463,6 +570,8 @@ const handleTabClick = () => {
     fetchLlmConfigs();
   } else if (activeTab.value === 'embedding' && embeddingConfigs.value.length === 0) {
     fetchEmbeddingConfigs();
+  } else if (activeTab.value === 'rerank' && rerankConfigs.value.length === 0) {
+    fetchRerankConfigs();
   }
 };
 
@@ -534,8 +643,27 @@ const fetchEmbeddingConfigs = async () => {
   }
 };
 
+// 获取ReRank配置列表
+const fetchRerankConfigs = async () => {
+  loading.rerank = true;
+  try {
+    const baseURL = import.meta.env.VITE_APP_BASE_URL;
+    const response = await getRequest<any>(`${baseURL}/v1/api/mark/admin/rerank_configs`);
+    if (response?.code === 200) {
+      rerankConfigs.value = response.data || [];
+    } else {
+      ElMessage.error(response?.message || '获取ReRank配置列表失败');
+    }
+  } catch (error) {
+    console.error('获取ReRank配置列表出错:', error);
+    ElMessage.error('获取ReRank配置列表出错');
+  } finally {
+    loading.rerank = false;
+  }
+};
+
 // 打开创建对话框
-const openCreateDialog = (type: 'llm' | 'embedding') => {
+const openCreateDialog = (type: 'llm' | 'embedding' | 'rerank') => {
   configType.value = type;
   dialogType.value = 'create';
   resetForm();
@@ -543,7 +671,7 @@ const openCreateDialog = (type: 'llm' | 'embedding') => {
 };
 
 // 打开编辑对话框
-const editConfig = (type: 'llm' | 'embedding', config: any) => {
+const editConfig = (type: 'llm' | 'embedding' | 'rerank', config: any) => {
   configType.value = type;
   dialogType.value = 'edit';
   resetForm();
@@ -620,7 +748,16 @@ const submitForm = async () => {
     
     loading.submit = true;
     const baseURL = import.meta.env.VITE_APP_BASE_URL;
-    const url = configType.value === 'llm' ? '/v1/api/mark/admin/llm_configs' : '/v1/api/mark/admin/embedding_configs';
+    let url = '';
+    
+    if (configType.value === 'llm') {
+      url = '/v1/api/mark/admin/llm_configs';
+    } else if (configType.value === 'embedding') {
+      url = '/v1/api/mark/admin/embedding_configs';
+    } else if (configType.value === 'rerank') {
+      url = '/v1/api/mark/admin/rerank_configs';
+    }
+    
     const fullUrl = dialogType.value === 'create' ? 
       `${baseURL}${url}` : 
       `${baseURL}${url}/${configForm.id}`;
@@ -642,7 +779,7 @@ const submitForm = async () => {
     if (configType.value === 'llm') {
       requestData.is_default_chat = configForm.is_default_chat;
       requestData.is_default_splitter = configForm.is_default_splitter;
-    } else {
+    } else if (configType.value === 'embedding' || configType.value === 'rerank') {
       requestData.is_default = configForm.is_default;
     }
     
@@ -663,8 +800,10 @@ const submitForm = async () => {
       // 刷新数据
       if (configType.value === 'llm') {
         fetchLlmConfigs();
-      } else {
+      } else if (configType.value === 'embedding') {
         fetchEmbeddingConfigs();
+      } else if (configType.value === 'rerank') {
+        fetchRerankConfigs();
       }
     } else {
       ElMessage.error(response?.message || (dialogType.value === 'create' ? '添加失败' : '更新失败'));
@@ -682,14 +821,14 @@ const submitForm = async () => {
 };
 
 // 确认删除
-const confirmDelete = (type: 'llm' | 'embedding', config: any) => {
+const confirmDelete = (type: 'llm' | 'embedding' | 'rerank', config: any) => {
   configType.value = type;
   currentConfig.value = config;
   deleteDialogVisible.value = true;
 };
 
 // 确认设为默认
-const confirmSetDefault = (type: 'llm' | 'embedding', id: number, defaultType?: 'chat' | 'splitter') => {
+const confirmSetDefault = (type: 'llm' | 'embedding' | 'rerank', id: number, defaultType?: 'chat' | 'splitter') => {
   configType.value = type;
   currentConfig.value = { id };
   defaultSettingType.value = defaultType || null;
@@ -702,9 +841,15 @@ const deleteConfig = async () => {
   
   loading.delete = true;
   const baseURL = import.meta.env.VITE_APP_BASE_URL;
-  const url = configType.value === 'llm' ? 
-    `/v1/api/mark/admin/llm_configs/${currentConfig.value.id}` : 
-    `/v1/api/mark/admin/embedding_configs/${currentConfig.value.id}`;
+  let url;
+  
+  if (configType.value === 'llm') {
+    url = `/v1/api/mark/admin/llm_configs/${currentConfig.value.id}`;
+  } else if (configType.value === 'embedding') {
+    url = `/v1/api/mark/admin/embedding_configs/${currentConfig.value.id}`;
+  } else if (configType.value === 'rerank') {
+    url = `/v1/api/mark/admin/rerank_configs/${currentConfig.value.id}`;
+  }
   
   try {
     const response = await deleteRequest<any>(`${baseURL}${url}`);
@@ -718,8 +863,10 @@ const deleteConfig = async () => {
       // 刷新数据
       if (configType.value === 'llm') {
         fetchLlmConfigs();
-      } else {
+      } else if (configType.value === 'embedding') {
         fetchEmbeddingConfigs();
+      } else if (configType.value === 'rerank') {
+        fetchRerankConfigs();
       }
     } else {
       ElMessage.error(response?.message || '删除失败');
@@ -748,8 +895,10 @@ const setAsDefault = async () => {
     } else {
       url = `/v1/api/mark/admin/llm_configs/${currentConfig.value.id}/set_default_chat`;
     }
-  } else {
+  } else if (configType.value === 'embedding') {
     url = `/v1/api/mark/admin/embedding_configs/${currentConfig.value.id}/set_default`;
+  } else if (configType.value === 'rerank') {
+    url = `/v1/api/mark/admin/rerank_configs/${currentConfig.value.id}/set_default`;
   }
   
   try {
@@ -764,8 +913,10 @@ const setAsDefault = async () => {
       // 刷新数据
       if (configType.value === 'llm') {
         fetchLlmConfigs();
-      } else {
+      } else if (configType.value === 'embedding') {
         fetchEmbeddingConfigs();
+      } else if (configType.value === 'rerank') {
+        fetchRerankConfigs();
       }
     } else {
       ElMessage.error(response?.message || '设置默认配置失败');
@@ -782,6 +933,7 @@ const setAsDefault = async () => {
 onMounted(() => {
   fetchLlmConfigs();
   fetchEmbeddingConfigs();
+  // 初始加载时不需要立即加载ReRank配置，切换标签时会触发加载
 });
 </script>
 
