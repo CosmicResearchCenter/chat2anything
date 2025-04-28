@@ -252,7 +252,6 @@ watch(
     <!-- 顶部栏 -->
     <header class="dashboard-header">
       <div class="dashboard-title">
-        <!-- <img src="/logo.svg" alt="logo" class="logo" /> -->
         <div>
           <h1>AI 管理控制台</h1>
           <span>智能助手 · 数据洞察 · 高效管理</span>
@@ -272,7 +271,7 @@ watch(
       </div>
     </header>
 
-    <main class="dashboard-main with-sidebar">
+    <main class="dashboard-main">
       <!-- 左侧快捷入口栏 -->
       <aside class="dashboard-sidebar">
         <h2>管理入口</h2>
@@ -382,18 +381,20 @@ watch(
               <el-icon><Clock /></el-icon>
               <span>最近活动</span>
             </div>
-            <el-timeline>
-              <el-timeline-item
-                v-for="activity in recentActivities"
-                :key="activity.id"
-                :type="activity.type === 'user' ? 'primary' : activity.type === 'conversation' ? 'success' : activity.type === 'knowledge' ? 'warning' : 'info'"
-                :size="'small'"
-                :timestamp="activity.time"
-              >
-                <span class="activity-user">{{ activity.username }}</span>
-                <span class="activity-action">{{ activity.action }}</span>
-              </el-timeline-item>
-            </el-timeline>
+            <div class="activities-container">
+              <el-timeline>
+                <el-timeline-item
+                  v-for="activity in recentActivities"
+                  :key="activity.id"
+                  :type="activity.type === 'user' ? 'primary' : activity.type === 'conversation' ? 'success' : activity.type === 'knowledge' ? 'warning' : 'info'"
+                  :size="'small'"
+                  :timestamp="activity.time"
+                >
+                  <span class="activity-user">{{ activity.username }}</span>
+                  <span class="activity-action">{{ activity.action }}</span>
+                </el-timeline-item>
+              </el-timeline>
+            </div>
           </div>
         </section>
       </section>
@@ -414,6 +415,9 @@ watch(
   min-height: 100vh;
   color: var(--text);
   transition: background 0.3s, color 0.3s;
+  position: relative;
+  width: 100%;
+  overflow-x: hidden;
 }
 .admin-dashboard.dark-mode {
   --bg: #10131a;
@@ -429,28 +433,23 @@ watch(
   align-items: center;
   padding: 32px 40px 0 40px;
   background: transparent;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 .dashboard-title {
   display: flex;
   align-items: center;
   gap: 18px;
 }
-.dashboard-title .logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(22,119,255,0.08);
-}
 .dashboard-title h1 {
-  font-size: 2.1rem;
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
   font-weight: 700;
   margin: 0;
   color: var(--text);
   letter-spacing: 1px;
 }
 .dashboard-title span {
-  font-size: 1rem;
+  font-size: clamp(0.8rem, 2vw, 1rem);
   color: var(--text-secondary);
   margin-top: 2px;
   display: block;
@@ -463,22 +462,19 @@ watch(
 .theme-switch {
   margin-left: 8px;
 }
+
+/* 重新设计为可适应的主区域布局 */
 .dashboard-main {
-  padding: 24px 40px 40px 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-  /* overflow-y: scroll; */
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 24px;
+  padding: 24px 20px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
 }
-.dashboard-main.with-sidebar {
-  display: flex;
-  flex-direction: row;
-  gap: 32px;
-  padding: 24px 40px 40px 40px;
-}
+
 .dashboard-sidebar {
-  width: 230px;
-  min-width: 180px;
   background: var(--card-bg);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -487,8 +483,8 @@ watch(
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  margin-right: 32px;
   height: fit-content;
+  min-width: 0; /* 防止溢出 */
 }
 .dashboard-sidebar h2 {
   font-size: 1.1rem;
@@ -560,24 +556,20 @@ watch(
 
 /* 主内容区域 */
 .dashboard-content {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  min-width: 0;
+  gap: 24px;
+  min-width: 0; /* 防止溢出 */
+  overflow: hidden;
 }
 
-/* 隐藏原右侧快捷入口 */
-.dashboard-quick-access {
-  display: none !important;
-}
 .dashboard-stats {
-  display: flex;
-  gap: 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
   margin-bottom: 8px;
 }
 .stat-card {
-  flex: 1;
   background: var(--card-bg);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -610,14 +602,18 @@ watch(
 }
 .stat-info {
   flex: 1;
+  min-width: 0; /* 防止文本溢出 */
 }
 .stat-value {
-  font-size: 2.1rem;
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
   font-weight: 700;
   color: var(--text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 .stat-label {
-  font-size: 1rem;
+  font-size: clamp(0.8rem, 2vw, 1rem);
   color: var(--text-secondary);
   margin-top: 2px;
 }
@@ -629,11 +625,11 @@ watch(
   font-weight: 500;
 }
 .dashboard-charts {
-  display: flex;
-  gap: 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
 }
 .chart-card {
-  flex: 1;
   background: var(--card-bg);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -641,7 +637,7 @@ watch(
   border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  min-width: 0; /* 防止溢出 */
 }
 .chart-title {
   display: flex;
@@ -655,10 +651,12 @@ watch(
 .chart {
   height: 260px;
   width: 100%;
+  max-width: 100%;
 }
 .dashboard-status-activity {
-  display: flex;
-  gap: 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
 }
 .system-status-card, .recent-activities-card {
   background: var(--card-bg);
@@ -668,16 +666,7 @@ watch(
   padding: 24px 22px 18px 22px;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-}
-.system-status-card {
-  flex: 1.1;
-  min-width: 260px;
-  margin-right: 0;
-}
-.recent-activities-card {
-  flex: 2;
-  min-width: 0;
+  min-width: 0; /* 防止溢出 */
 }
 .card-header {
   display: flex;
@@ -704,6 +693,11 @@ watch(
   margin-top: 18px;
   text-align: center;
 }
+.activities-container {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
 .activity-user {
   color: var(--text);
   font-weight: 500;
@@ -712,152 +706,96 @@ watch(
   color: var(--text-secondary);
   margin-left: 6px;
 }
-.dashboard-quick-access {
-  margin-top: 18px;
-}
-.dashboard-quick-access h2 {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 18px;
-  letter-spacing: 1px;
-}
-.quick-access-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 28px;
-  width: 100%;
-  /* 让卡片自动换行，避免溢出 */
-}
-.access-card {
-  flex: 1;
-  min-width: 0;
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 22px 18px;
-  cursor: pointer;
-  position: relative;
-  transition: box-shadow 0.2s, transform 0.2s;
-  overflow: hidden;
-}
-.access-card:hover {
-  box-shadow: 0 8px 32px 0 color-mix(in srgb, var(--access-color) 30%, transparent);
-  transform: translateY(-2px) scale(1.02);
-}
-.access-card::after {
-  content: '';
-  position: absolute;
-  left: 0; bottom: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, var(--access-color), #fff0 80%);
-  transition: transform 0.3s;
-  transform: scaleX(0);
-}
-.access-card:hover::after {
-  transform: scaleX(1);
-}
-.access-icon {
-  background: color-mix(in srgb, var(--access-color) 16%, transparent);
-  color: var(--access-color);
-  border-radius: 10px;
-  width: 48px; height: 48px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 2rem;
-}
-.access-content {
-  flex: 1;
-  margin-left: 10px;
-}
-.access-content h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin: 0 0 4px 0;
-  color: var(--text);
-}
-.access-content p {
-  font-size: 0.98rem;
-  color: var (--text-secondary);
-  margin: 0;
-}
-.access-arrow {
-  color: var(--access-color);
-  margin-left: 8px;
-  font-size: 1.3rem;
-}
 
-/* 响应式优化 */
+/* 重新优化响应式断点 */
 @media (max-width: 1200px) {
-  .dashboard-main { padding: 18px 10px 24px 10px; }
-  .dashboard-header { padding: 24px 10px 0 10px; }
-  .dashboard-stats, .dashboard-charts, .dashboard-status-activity { gap: 14px; }
-  .quick-access-list { gap: 14px; }
-}
-@media (max-width: 900px) {
-  .dashboard-stats, .dashboard-charts, .dashboard-status-activity {
-    flex-direction: column;
-  }
-  .stat-card, .chart-card, .system-status-card, .recent-activities-card {
-    width: 100%;
-    min-width: 0;
-  }
-  .quick-access-list {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  }
-}
-@media (max-width: 600px) {
-  .dashboard-header { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .dashboard-title { gap: 10px; }
-  .dashboard-main { padding: 8px 2vw 16px 2vw; gap: 18px; }
-  .stat-card, .chart-card, .system-status-card, .recent-activities-card, .access-card { padding: 14px 8px; }
-  .chart { height: 180px; }
-  .quick-access-list {
+  .dashboard-main {
+    padding: 20px;
     grid-template-columns: 1fr;
-    gap: 12px;
   }
-}
-@media (max-width: 1200px) {
-  .dashboard-main.with-sidebar { gap: 16px; padding: 18px 10px 24px 10px; }
-  .dashboard-header { padding: 24px 10px 0 10px; }
-  .dashboard-sidebar { margin-right: 16px; }
-}
-@media (max-width: 900px) {
-  .dashboard-main.with-sidebar {
-    flex-direction: column;
-    gap: 0;
+  .dashboard-header {
+    padding: 24px 20px 0;
   }
   .dashboard-sidebar {
-    width: 100%;
-    min-width: 0;
-    margin-right: 0;
-    margin-bottom: 18px;
-    flex-direction: row;
-    padding: 14px 0;
-    justify-content: flex-start;
-    align-items: flex-start;
-    overflow-x: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    padding: 20px;
+  }
+  .dashboard-sidebar h2 {
+    grid-column: 1 / -1;
+    margin: 0 0 10px 0;
   }
   .sidebar-access-list {
-    flex-direction: row;
-    gap: 10px;
-    padding: 0 8px;
-    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    padding: 0;
   }
   .sidebar-access-card {
-    min-width: 180px;
-    padding: 10px 10px;
+    height: 100%;
+    flex-direction: column;
+    text-align: center;
+    padding: 16px 10px;
+  }
+  .sidebar-access-content {
+    text-align: center;
+    padding: 5px 0;
+  }
+  .sidebar-access-arrow {
+    display: none;
   }
 }
-@media (max-width: 600px) {
-  .dashboard-header { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .dashboard-title { gap: 10px; }
-  .dashboard-main.with-sidebar { padding: 8px 2vw 16px 2vw; }
-  .dashboard-sidebar { padding: 8px 0; }
-  .sidebar-access-list { gap: 6px; }
-  .sidebar-access-card { min-width: 120px; padding: 8px 6px; }
-  .dashboard-content { gap: 18px; }
+
+@media (max-width: 768px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  .stat-card {
+    padding: 18px 12px;
+    gap: 12px;
+  }
+  .stat-icon {
+    width: 42px;
+    height: 42px;
+  }
+  .dashboard-charts {
+    grid-template-columns: 1fr;
+  }
+  .chart {
+    height: 200px;
+  }
+  .dashboard-status-activity {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header {
+    padding: 18px 15px 0;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .dashboard-main {
+    padding: 15px;
+    gap: 16px;
+  }
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+  }
+  .stat-card, .chart-card, .system-status-card, .recent-activities-card {
+    padding: 15px 12px;
+  }
+  .sidebar-access-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 增强触摸设备的用户体验 */
+@media (hover: none) {
+  .sidebar-access-card:active, .stat-card:active {
+    transform: scale(0.98);
+  }
 }
 </style>
