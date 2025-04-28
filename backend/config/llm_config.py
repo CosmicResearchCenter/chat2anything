@@ -5,13 +5,13 @@ class OLLAMA_Config(MysqlClient):
     BASE_URL:str= ""
     MODEL:str= ""
 
-    def __init__(self) -> None:
+    def __init__(self,model:str) -> None:
         super().__init__()
-        self.getinfo()
+        self.getinfo(model=model)
     def __del__(self):
         super().__del__()
-    def getinfo(self):
-        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.OLLAMA).first()
+    def getinfo(self,model:str):
+        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.OLLAMA,LLMProviderConfig.model == model).first()
         if info:
             self.BASE_URL = info.base_url
             self.MODEL = info.model
@@ -24,13 +24,13 @@ class SILICONFLOW_Config(MysqlClient):
     BASE_URL:str= ""
     MODEL:str= ""
 
-    def __init__(self) -> None:
+    def __init__(self,model:str) -> None:
         super().__init__()
-        self.getinfo()
+        self.getinfo(model=model)
     def __del__(self):
         super().__del__()
-    def getinfo(self):
-        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.SILICONFLOW).first()
+    def getinfo(self,model:str):
+        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.SILICONFLOW,LLMProviderConfig.model == model).first()
         if info:
             self.API_KEY = info.api_key
             self.BASE_URL = info.base_url
@@ -44,13 +44,13 @@ class OneAPI_Config(MysqlClient):
     BASE_URL:str= ""
     MODEL:str= ""
 
-    def __init__(self) -> None:
+    def __init__(self,model:str) -> None:
         super().__init__()
-        self.getinfo()
+        self.getinfo(model=model)
     def __del__(self):
         super().__del__()
-    def getinfo(self):
-        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.ONEAPI).first()
+    def getinfo(self,model:str):
+        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.ONEAPI,LLMProviderConfig.model == model).first()
         if info:
             self.API_KEY = info.api_key
             self.BASE_URL = info.base_url
@@ -64,13 +64,13 @@ class OpenAI_Config(MysqlClient):
     BASE_URL:str= ""
     MODEL:str= ""
 
-    def __init__(self) -> None:
+    def __init__(self,model:str) -> None:
         super().__init__()
-        self.getinfo()
+        self.getinfo(model=model)
     def __del__(self):
         super().__del__()
-    def getinfo(self):
-        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.OPENAI).first()
+    def getinfo(self,model:str):
+        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.OPENAI,LLMProviderConfig.model == model).first()
         if info:
             self.API_KEY = info.api_key
             self.BASE_URL = info.base_url
@@ -83,12 +83,12 @@ class OpenAI_Config(MysqlClient):
 class ZhiPuAI_Config(MysqlClient):
     API_KEY:str= ""
     MODEL:str= ""
-    def __init__(self) -> None:
+    def __init__(self,model:str) -> None:
         super().__init__()
-        self.getinfo()
+        self.getinfo(model=model)
     # Removed __del__ as it only called super().__del__()
-    def getinfo(self):
-        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.ZHIPUAI).first()
+    def getinfo(self,model:str):
+        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.ZHIPUAI,LLMProviderConfig.model == model).first()
         if info:
             self.API_KEY = info.api_key
             self.MODEL = info.model
@@ -102,13 +102,13 @@ class SparkAI_Config(MysqlClient):
     API_KEY:str= ""
     BASE_URL:str= ""
     DOMAIN:str= ""
-    def __init__(self) -> None:
+    def __init__(self,model:str) -> None:
         super().__init__()
-        self.getinfo()
+        self.getinfo(model=model)
     def __del__(self):
         super().__del__()
-    def getinfo(self):
-        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.SPARKAI).first()
+    def getinfo(self,model:str):
+        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.SPARKAI,LLMProviderConfig.model == model).first()
         if info and info.config: # Check if info and info.config exist
             self.API_KEY = info.api_key
             self.APP_ID = info.config.get('APP_ID', '') # Use .get for safety
@@ -123,13 +123,13 @@ class DouBaoAI_Config(MysqlClient):
     API_KEY:str= ""
     BASE_URL:str= ""
     MODEL:str= ""
-    def __init__(self) -> None:
+    def __init__(self,model:str) -> None:
         super().__init__()
-        self.getinfo()
+        self.getinfo(model=model)
     def __del__(self):
         super().__del__()
-    def getinfo(self):
-        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.DOUBAOAI).first()
+    def getinfo(self,model:str):
+        info = self.db.query(LLMProviderConfig).filter(LLMProviderConfig.vendor_type == LLMVendorType.DOUBAOAI,LLMProviderConfig.model == model).first()
         if info:
             self.API_KEY = info.api_key
             self.BASE_URL = info.base_url

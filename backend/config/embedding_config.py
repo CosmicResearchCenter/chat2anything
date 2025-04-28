@@ -5,13 +5,13 @@ class DOUBAO_Embedding_Config(MysqlClient):
     BASE_URL:str= ""
     MODEL:str= ""
     API_KEY:str = ""
-    def __init__(self) -> None:
+    def __init__(self,model:str) -> None:
         super().__init__()
-        self.getinfo()
+        self.getinfo(model=model)
     def __del__(self):
         super().__del__()
-    def getinfo(self):
-        info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.vendor_type == EmbeddingVendorType.DOUBAOAI).first()
+    def getinfo(self,model:str):
+        info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.vendor_type == EmbeddingVendorType.DOUBAOAI,EmbeddingModelConfig.model == model).first()
         if info:
             self.BASE_URL = info.base_url
             self.MODEL = info.model
@@ -24,13 +24,13 @@ class OpenAI_Embedding_Config(MysqlClient):
     BASE_URL:str= ""
     MODEL:str= ""
     API_KEY:str = ""
-    def __init__(self) -> None:
+    def __init__(self,model:str) -> None:
         super().__init__()
-        self.getinfo()
+        self.getinfo(model=model)
     def __del__(self):
         super().__del__()
-    def getinfo(self):
-        info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.vendor_type == EmbeddingVendorType.OPENAI).first()
+    def getinfo(self,model:str):
+        info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.vendor_type == EmbeddingVendorType.OPENAI,EmbeddingModelConfig.model == model).first()
         if info:
             self.BASE_URL = info.base_url
             self.MODEL = info.model
@@ -42,13 +42,13 @@ class OneAPI_Embedding_Config(MysqlClient):
     BASE_URL:str= ""
     MODEL:str= ""
     API_KEY:str = ""
-    def __init__(self) -> None:
+    def __init__(self,model:str) -> None:
         super().__init__()
-        self.getinfo()
+        self.getinfo(model=model)
     def __del__(self):
         super().__del__()
-    def getinfo(self):
-        info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.vendor_type == EmbeddingVendorType.ONEAPI).first()
+    def getinfo(self,model:str):
+        info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.vendor_type == EmbeddingVendorType.ONEAPI,EmbeddingModelConfig.model == model).first()
         if info:
             self.BASE_URL = info.base_url
             self.MODEL = info.model
@@ -60,13 +60,13 @@ class SILICONFLOW_Embedding_Config(MysqlClient):
     BASE_URL:str= ""
     MODEL:str= ""
     API_KEY:str = ""
-    def __init__(self) -> None:
+    def __init__(self,model:str) -> None:
         super().__init__()
-        self.getinfo()
+        self.getinfo(model=model)
     def __del__(self):
         super().__del__()
-    def getinfo(self):
-        info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.vendor_type == EmbeddingVendorType.SILICONFLOW).first()
+    def getinfo(self,model:str):
+        info = self.db.query(EmbeddingModelConfig).filter(EmbeddingModelConfig.vendor_type == EmbeddingVendorType.SILICONFLOW,EmbeddingModelConfig.model == model).first()
         if info:
             self.BASE_URL = info.base_url
             self.MODEL = info.model
