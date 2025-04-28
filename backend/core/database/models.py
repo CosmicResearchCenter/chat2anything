@@ -162,12 +162,12 @@ class LLMProviderConfig(Base):
     config = Column(JSON, nullable=True)  # 存储厂商专属配置
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    is_default_chat = Column(Boolean, default=False, nullable=False) # 新增：标记是否为默认配置
-    is_default_splitter = Column(Boolean, default=False, nullable=False) # 新增：标记是否为默认配置
-    # 通用字段（可选）
-    base_url = Column(String, nullable=True)  # 多个厂商共用
-    api_key = Column(String, nullable=True)  # 多个厂商共用
-    model = Column(String, nullable=True)    # 多个厂商共用
+    is_default_chat = Column(Boolean, default=False, nullable=False)
+    is_default_splitter = Column(Boolean, default=False, nullable=False)
+    # 通用字段（可选）- 添加长度参数
+    base_url = Column(String(255), nullable=True)  # 多个厂商共用
+    api_key = Column(String(255), nullable=True)  # 多个厂商共用
+    model = Column(String(100), nullable=True)    # 多个厂商共用
 
 class EmbeddingVendorType(str, Enum):
     OPENAI = "OPENAI"
@@ -181,14 +181,14 @@ class EmbeddingModelConfig(Base):
 
     id = Column(Integer, primary_key=True)
     vendor_type = Column(SQLEnum(EmbeddingVendorType), nullable=False)
-    config = Column(JSON, nullable=False)  # 存储厂商专属配置
+    config = Column(JSON, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    is_default = Column(Boolean, default=False, nullable=False) # 新增：标记是否为默认配置
-    # 通用字段（可选）
-    base_url = Column(String, nullable=True)  # 多个厂商共用
-    api_key = Column(String, nullable=True)  # 多个厂商共用
-    model = Column(String, nullable=True)    # 多个厂商共用
+    is_default = Column(Boolean, default=False, nullable=False)
+    # 通用字段（可选）- 添加长度参数
+    base_url = Column(String(255), nullable=True)
+    api_key = Column(String(255), nullable=True)
+    model = Column(String(100), nullable=True)
 
 class ReRankVendorType(str, Enum):
     OLLAMA = "OLLAMA"
@@ -199,11 +199,11 @@ class ReRankModelConfig(Base):
 
     id = Column(Integer, primary_key=True)
     vendor_type = Column(SQLEnum(EmbeddingVendorType), nullable=False)
-    config = Column(JSON, nullable=False)  # 存储厂商专属配置
+    config = Column(JSON, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    is_default = Column(Boolean, default=False, nullable=False) # 新增：标记是否为默认配置
-    # 通用字段（可选）
-    base_url = Column(String, nullable=True)  # 多个厂商共用
-    api_key = Column(String, nullable=True)  # 多个厂商共用
-    model = Column(String, nullable=True)    # 多个厂商共用
+    is_default = Column(Boolean, default=False, nullable=False)
+    # 通用字段（可选）- 添加长度参数
+    base_url = Column(String(255), nullable=True)
+    api_key = Column(String(255), nullable=True)
+    model = Column(String(100), nullable=True)
