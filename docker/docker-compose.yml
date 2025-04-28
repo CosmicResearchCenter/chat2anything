@@ -21,6 +21,12 @@ services:
       - ./mysql_data:/var/lib/mysql
     networks:
       - chat2network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   elasticsearch:
     image: elasticsearch:8.12.0
@@ -49,6 +55,13 @@ services:
     user: "1000:1000"  # 使用特定UID:GID运行容器
     networks:
       - chat2network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    restart: always
 
   etcd:
     container_name: milvus-etcd
@@ -120,12 +133,14 @@ services:
       context: ../backend
       dockerfile: Dockerfile
     container_name: chat2anything_backend
+    restart: always  # 改为always而不是on-failure
     depends_on:
-      - mysql
-      - elasticsearch
-      - standalone
-      - minio
-      - etcd
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy  # 改为service_healthy
+      standalone:
+        condition: service_healthy
     environment:
       SECRET_KEY: ${SECRET_KEY}
       ADMIN_KEY: ${ADMIN_KEY}
@@ -134,10 +149,10 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_BASE: ${MYSQL_BASE}
-      ES_HOST: elasticsearch
+      ES_HOST: ${ES_BASE_URL} 
       ES_PORT: ${ES_BASE_PORT}
-      MILVUS_HOST: standalone
-      MILVUS_PORT: 19530
+      MILVUS_HOST: ${MILVUS_HOST}
+      MILVUS_PORT: ${MILVUS_PORT}
       SPPLITTER_MODEL : ${SPPLITTER_MODEL}
     env_file:
       - .env
