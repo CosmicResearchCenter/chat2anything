@@ -32,7 +32,7 @@ class EmbeddingType(Enum):
             raise ValueError(f"不支持的 Embedding 提供商类型: {name}")
 
 class EmbeddingManager:
-    def create_embedding(self, embedding_provider: str) -> Embedding: # 参数名可以更清晰
+    def create_embedding(self, embedding_provider: str,model:str)-> Embedding: # 参数名可以更清晰
         try:
             embedding_type = EmbeddingType.get_embedding_type(embedding_provider)
         except ValueError as e:
@@ -40,25 +40,25 @@ class EmbeddingManager:
 
         # 根据类型加载配置并创建实例
         if embedding_type == EmbeddingType.DOUBAO:
-            config = DOUBAO_Embedding_Config()
+            config = DOUBAO_Embedding_Config(model=model)
             if not config.API_KEY or not config.BASE_URL or not config.MODEL:
                 raise ValueError(f"豆包（DOUBAO）Embedding 的配置信息不完整或未设置。请检查数据库。")
             return DouBaoEmbedding(api_key=config.API_KEY, base_url=config.BASE_URL, model=config.MODEL)
 
         elif embedding_type == EmbeddingType.OPENAI:
-            config = OpenAI_Embedding_Config()
+            config = OpenAI_Embedding_Config(model=model)
             if not config.API_KEY: # 至少需要 API Key
                  raise ValueError(f"OpenAI Embedding 的配置信息不完整或未设置（缺少 API Key）。请检查数据库。")
             return OpenAIEmbedding(api_key=config.API_KEY, base_url=config.BASE_URL, model=config.MODEL)
 
         elif embedding_type == EmbeddingType.ONEAPI:
-            config = OneAPI_Embedding_Config()
+            config = OneAPI_Embedding_Config(model=model)
             if not config.API_KEY or not config.BASE_URL or not config.MODEL:
                  raise ValueError(f"OneAPI Embedding 的配置信息不完整或未设置。请检查数据库。")
             return OneAPIEmbedding(api_key=config.API_KEY, base_url=config.BASE_URL, model=config.MODEL)
 
         elif embedding_type == EmbeddingType.SILICONFLOW:
-            config = SILICONFLOW_Embedding_Config()
+            config = SILICONFLOW_Embedding_Config(model=model)
             if not config.API_KEY or not config.BASE_URL or not config.MODEL:
                 raise ValueError(f"SiliconFlow Embedding 的配置信息不完整或未设置。请检查数据库。")
             return SiliconFlowEmbedding(api_key=config.API_KEY, base_url=config.BASE_URL, model=config.MODEL)
