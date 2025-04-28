@@ -1,8 +1,8 @@
 from core.rag.rag_pipeline import RAG_Pipeline
 from core.database.mysql_client import MysqlClient
 from core.database.models import KnowledgeBase,UserInfo,Chat_Messages,Conversation,DocInfo
-from core.database.models import LLMProviderConfig, EmbeddingModelConfig # 导入模型
-from core.database.models import LLMVendorType, EmbeddingVendorType # 导入类型枚举
+from core.database.models import LLMProviderConfig, EmbeddingModelConfig, ReRankModelConfig # 导入模型
+from core.database.models import LLMVendorType, EmbeddingVendorType, ReRankVendorType # 导入类型枚举
 from core.rag.database.milvus.milvus_client import MilvusCollectionManager
 from core.rag.database.elasticsearch.elastic_client import ElasticClient
 from .admin_type import (SystemInfo,
@@ -1153,6 +1153,199 @@ class AdminService:
                 return None
                 
             return self.get_embedding_config(config.id)
+        except ValueError:
+            raise ValueError(f"无效的提供商类型: {vendor_type}")
+    
+    # ---------- ReRank模型配置管理 ----------
+
+    def get_rerank_configs(self) -> List[Dict[str, Any]]:
+        """获取所有ReRank模型配置"""
+        mysql_client = MysqlClient()
+        configs = mysql_client.db.query(ReRankModelConfig).all()
+        result = []
+        
+        for config in configs:
+            # 对API密钥进行掩码处理
+            api_key_masked = None
+            if config.api_key:
+                if len(config.api_key) > 8:
+                    api_key_masked = config.api_key[:4] + '*' * (len(config.api_key) - 8) + config.api_key[-4:]
+                else:
+                    api_key_masked = '****' + config.api_key[-4:] if len(config.api_key) >= 4 else '****'
+                    
+            result.append({
+                "id": config.id,
+                "vendor_type": config.vendor_type,
+                "model": config.model,
+                "base_url": config.base_url,
+                "api_key_masked": api_key_masked,
+                "config": config.config,
+                "is_default": config.is_default,
+                "created_at": config.created_at.isoformat() if config.created_at else None,
+                "updated_at": config.updated_at.isoformat() if config.updated_at else None
+            })
+            
+        return result
+
+    def get_rerank_config(self, config_id: int) -> Optional[Dict[str, Any]]:
+        """获取特定ReRank配置"""
+        mysql_client = MysqlClient()
+        config = mysql_client.db.query(ReRankModelConfig).filter(ReRankModelConfig.id == config_id).first()
+        
+        if not config:
+            return None
+            
+        # 对API密钥进行掩码处理
+        api_key_masked = None
+        if config.api_key:
+            if len(config.api_key) > 8:
+                api_key_masked = config.api_key[:4] + '*' * (len(config.api_key) - 8) + config.api_key[-4:]
+            else:
+                api_key_masked = '****' + config.api_key[-4:] if len(config.api_key) >= 4 else '****'
+                
+        return {
+            "id": config.id,
+            "vendor_type": config.vendor_type,
+            "model": config.model,
+            "base_url": config.base_url,
+            "api_key_masked": api_key_masked,
+            "config": config.config,
+            "is_default": config.is_default,
+            "created_at": config.created_at.isoformat() if config.created_at else None,
+            "updated_at": config.updated_at.isoformat() if config.updated_at else None
+        }
+
+    def create_rerank_config(self, config_data: Dict[str, Any]) -> Dict[str, Any]:
+        """创建新的ReRank配置"""
+        mysql_client = MysqlClient()
+        
+        # 检查vendor_type是否有效
+        try:
+            vendor_type = ReRankVendorType(config_data["vendor_type"])
+        except ValueError:
+            raise ValueError(f"无效的提供商类型: {config_data['vendor_type']}")
+            
+        # 如果设置为默认配置，先将同类型的所有配置设为非默认
+        if config_data.get("is_default", False):
+            default_configs = mysql_client.db.query(ReRankModelConfig).filter(
+                ReRankModelConfig.vendor_type == vendor_type,
+                ReRankModelConfig.is_default == True
+            ).all()
+            
+            for default_config in default_configs:
+                default_config.is_default = False
+                
+        # 创建新配置
+        new_config = ReRankModelConfig(
+            vendor_type=vendor_type,
+            model=config_data["model"],
+            base_url=config_data.get("base_url"),
+            api_key=config_data.get("api_key"),
+            config=config_data.get("config"),
+            is_default=config_data.get("is_default", False),
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        
+        mysql_client.db.add(new_config)
+        mysql_client.db.commit()
+        mysql_client.db.refresh(new_config)
+        
+        # 返回掩码处理后的结果
+        return self.get_rerank_config(new_config.id)
+
+    def update_rerank_config(self, config_id: int, config_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """更新ReRank配置"""
+        mysql_client = MysqlClient()
+        config = mysql_client.db.query(ReRankModelConfig).filter(ReRankModelConfig.id == config_id).first()
+        
+        if not config:
+            return None
+            
+        # 检查vendor_type是否有效
+        if "vendor_type" in config_data:
+            try:
+                vendor_type = ReRankVendorType(config_data["vendor_type"])
+                config_data["vendor_type"] = vendor_type
+            except ValueError:
+                raise ValueError(f"无效的提供商类型: {config_data['vendor_type']}")
+                
+        # 如果设置为默认配置，先将同类型的所有配置设为非默认
+        if config_data.get("is_default", False) and not config.is_default:
+            default_configs = mysql_client.db.query(ReRankModelConfig).filter(
+                ReRankModelConfig.vendor_type == config.vendor_type,
+                ReRankModelConfig.is_default == True
+            ).all()
+            
+            for default_config in default_configs:
+                default_config.is_default = False
+        
+        # 更新字段
+        for key, value in config_data.items():
+            if hasattr(config, key):
+                setattr(config, key, value)
+                
+        config.updated_at = datetime.now()
+        
+        mysql_client.db.commit()
+        mysql_client.db.refresh(config)
+        
+        # 返回掩码处理后的结果
+        return self.get_rerank_config(config.id)
+
+    def delete_rerank_config(self, config_id: int) -> bool:
+        """删除ReRank配置"""
+        mysql_client = MysqlClient()
+        config = mysql_client.db.query(ReRankModelConfig).filter(ReRankModelConfig.id == config_id).first()
+        
+        if not config:
+            return False
+            
+        mysql_client.db.delete(config)
+        mysql_client.db.commit()
+        
+        return True
+
+    def set_default_rerank_config(self, config_id: int) -> Optional[Dict[str, Any]]:
+        """设置默认ReRank模型配置"""
+        mysql_client = MysqlClient()
+        config = mysql_client.db.query(ReRankModelConfig).filter(ReRankModelConfig.id == config_id).first()
+        
+        if not config:
+            return None
+            
+        # 先将同类型的所有配置设为非默认
+        default_configs = mysql_client.db.query(ReRankModelConfig).filter(
+            ReRankModelConfig.vendor_type == config.vendor_type,
+            ReRankModelConfig.is_default == True
+        ).all()
+        
+        for default_config in default_configs:
+            default_config.is_default = False
+            
+        # 设置当前配置为默认
+        config.is_default = True
+        config.updated_at = datetime.now()
+        
+        mysql_client.db.commit()
+        
+        # 返回掩码处理后的结果
+        return self.get_rerank_config(config.id)
+
+    def get_default_rerank_config(self, vendor_type: str) -> Optional[Dict[str, Any]]:
+        """获取指定供应商类型的默认ReRank配置"""
+        mysql_client = MysqlClient()
+        try:
+            vendor = ReRankVendorType(vendor_type)
+            config = mysql_client.db.query(ReRankModelConfig).filter(
+                ReRankModelConfig.vendor_type == vendor,
+                ReRankModelConfig.is_default == True
+            ).first()
+            
+            if not config:
+                return None
+                
+            return self.get_rerank_config(config.id)
         except ValueError:
             raise ValueError(f"无效的提供商类型: {vendor_type}")
     

@@ -26,7 +26,7 @@ from .admin import (ResponseGenral,
                     UserListResponse,      # 导入
                     UserDetailsResponse,   # 导入
                     UpdateUserStatusRequest, # 导入
-                    # 新增配置相关模型
+                    # 配置相关模型
                     LLMConfigCreate,
                     LLMConfigUpdate,
                     LLMConfigResponse,
@@ -34,7 +34,12 @@ from .admin import (ResponseGenral,
                     EmbeddingConfigCreate,
                     EmbeddingConfigUpdate,
                     EmbeddingConfigResponse,
-                    EmbeddingConfigListResponse
+                    EmbeddingConfigListResponse,
+                    # 新增 ReRank 配置相关模型
+                    ReRankConfigCreate,
+                    ReRankConfigUpdate,
+                    ReRankConfigResponse,
+                    ReRankConfigListResponse
                     )
 router = APIRouter()
 
@@ -689,3 +694,167 @@ async def get_default_embedding_config(
             status_code=400,
             detail=str(e)
         )
+
+# ----------- ReRank模型配置管理接口 -----------
+
+# 获取所有ReRank配置
+@router.get("/rerank_configs", response_model=ReRankConfigListResponse)
+async def get_rerank_configs(username: str = Depends(get_is_admin)):
+    admin_service = AdminService()
+    configs = admin_service.get_rerank_configs()
+    return ReRankConfigListResponse(
+        code=200,
+        message="获取ReRank配置列表成功",
+        data=configs
+    )
+
+# 获取单个ReRank配置
+@router.get("/rerank_configs/{config_id}", response_model=ResponseGenral)
+async def get_rerank_config(
+    config_id: int = Path(..., description="配置ID"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    config = admin_service.get_rerank_config(config_id)
+    
+    if not config:
+        raise HTTPException(
+            status_code=404,
+            detail="找不到指定的ReRank配置"
+        )
+        
+    return ResponseGenral(
+        code=200,
+        message="获取ReRank配置成功",
+        data=[config]
+    )
+
+# 创建ReRank配置
+@router.post("/rerank_configs", response_model=ResponseGenral)
+async def create_rerank_config(
+    config_data: ReRankConfigCreate = Body(...),
+    username: str = Depends(get_is_admin)
+):
+    try:
+        admin_service = AdminService()
+        config = admin_service.create_rerank_config(config_data.dict())
+        
+        return ResponseGenral(
+            code=200,
+            message="创建ReRank配置成功",
+            data=[config]
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"创建ReRank配置失败: {str(e)}"
+        )
+
+# 更新ReRank配置
+@router.put("/rerank_configs/{config_id}", response_model=ResponseGenral)
+async def update_rerank_config(
+    config_id: int = Path(..., description="配置ID"),
+    config_data: ReRankConfigUpdate = Body(...),
+    username: str = Depends(get_is_admin)
+):
+    try:
+        admin_service = AdminService()
+        config = admin_service.update_rerank_config(config_id, config_data.dict(exclude_unset=True))
+        
+        if not config:
+            raise HTTPException(
+                status_code=404,
+                detail="找不到指定的ReRank配置"
+            )
+            
+        return ResponseGenral(
+            code=200,
+            message="更新ReRank配置成功",
+            data=[config]
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"更新ReRank配置失败: {str(e)}"
+        )
+
+# 删除ReRank配置
+@router.delete("/rerank_configs/{config_id}", response_model=ResponseGenral)
+async def delete_rerank_config(
+    config_id: int = Path(..., description="配置ID"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    success = admin_service.delete_rerank_config(config_id)
+    
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail="找不到指定的ReRank配置"
+        )
+        
+    return ResponseGenral(
+        code=200,
+        message="删除ReRank配置成功",
+        data={}
+    )
+
+# 设置默认ReRank配置
+@router.post("/rerank_configs/{config_id}/set_default", response_model=ResponseGenral)
+async def set_default_rerank_config(
+    config_id: int = Path(..., description="配置ID"),
+    username: str = Depends(get_is_admin)
+):
+    admin_service = AdminService()
+    config = admin_service.set_default_rerank_config(config_id)
+    
+    if not config:
+        raise HTTPException(
+            status_code=404,
+            detail="找不到指定的ReRank配置"
+        )
+        
+    return ResponseGenral(
+        code=200,
+        message="设置默认ReRank配置成功",
+        data=[config]
+    )
+
+# 获取指定供应商的默认ReRank配置
+@router.get("/rerank_configs/default/{vendor_type}", response_model=ResponseGenral)
+async def get_default_rerank_config(
+    vendor_type: str = Path(..., description="供应商类型"),
+    username: str = Depends(get_is_admin)
+):
+    try:
+        admin_service = AdminService()
+        config = admin_service.get_default_rerank_config(vendor_type)
+        
+        if not config:
+            return ResponseGenral(
+                code=404,
+                message=f"未找到{vendor_type}的默认ReRank配置",
+                data=[]
+            )
+            
+        return ResponseGenral(
+            code=200,
+            message="获取默认ReRank配置成功",
+            data=[config]
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+

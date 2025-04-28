@@ -189,3 +189,21 @@ class EmbeddingModelConfig(Base):
     base_url = Column(String, nullable=True)  # 多个厂商共用
     api_key = Column(String, nullable=True)  # 多个厂商共用
     model = Column(String, nullable=True)    # 多个厂商共用
+
+class ReRankVendorType(str, Enum):
+    OLLAMA = "OLLAMA"
+    SILICONFLOW = "SILICONFLOW"
+
+class ReRankModelConfig(Base):
+    __tablename__ = 'rerank_model_configs'
+
+    id = Column(Integer, primary_key=True)
+    vendor_type = Column(SQLEnum(EmbeddingVendorType), nullable=False)
+    config = Column(JSON, nullable=False)  # 存储厂商专属配置
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_default = Column(Boolean, default=False, nullable=False) # 新增：标记是否为默认配置
+    # 通用字段（可选）
+    base_url = Column(String, nullable=True)  # 多个厂商共用
+    api_key = Column(String, nullable=True)  # 多个厂商共用
+    model = Column(String, nullable=True)    # 多个厂商共用

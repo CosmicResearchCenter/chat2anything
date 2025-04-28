@@ -118,3 +118,34 @@ class EmbeddingConfigListResponse(BaseModel):
     code: int
     message: str
     data: List[EmbeddingConfigResponse]
+
+# Rerank模型配置
+class ReRankConfigBase(BaseModel):
+    vendor_type: str
+    model: str
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    config: Optional[dict] = None
+    is_default: Optional[bool] = False
+
+class ReRankConfigCreate(ReRankConfigBase):
+    pass
+
+class ReRankConfigUpdate(ReRankConfigBase):
+    pass
+
+class ReRankConfigResponse(BaseModel):
+    id: int
+    vendor_type: str
+    model: str
+    base_url: Optional[str] = None
+    api_key_masked: Optional[str] = None  # API密钥会被掩码处理
+    config: Optional[dict] = None
+    is_default: bool
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+class ReRankConfigListResponse(BaseModel):
+    code: int
+    message: str
+    data: List[ReRankConfigResponse]
