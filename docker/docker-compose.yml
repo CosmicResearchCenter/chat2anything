@@ -115,7 +115,7 @@ services:
     networks:
       - chat2network
 
-  chat2anything_backen:
+  chat2anything_backend:
     build:
       context: ../backend
       dockerfile: Dockerfile
@@ -138,44 +138,40 @@ services:
       ES_PORT: ${ES_BASE_PORT}
       MILVUS_HOST: standalone
       MILVUS_PORT: 19530
-      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL}
-      EMBEDDING_API_KEY : ${EMBEDDING_API_KEY}
-      EMBEDDING_MODEL_PROVIDER : ${EMBEDDING_MODEL_PROVIDER}
-      EMBEDDING_MODEL : ${EMBEDDING_MODEL}
-      
-      LLM_PROVIDER : ${LLM_PROVIDER}
-      OPENAI_API_KEY : ${OPENAI_API_KEY}
-      OPENAI_BASE_URL : ${OPENAI_BASE_URL}
-      OPENAI_MODEL : ${OPENAI_MODEL}
-      OPENAI_EMBEDDING_MODEL : ${OPENAI_EMBEDDING_MODEL}
-
-      OLLAMA_MODEL : ${OLLAMA_MODEL}
-      oLLAMA_BASE_URL : ${OLLAMA_BASE_URL}
-
-      ONEAPI_BASE_URL : ${ONEAPI_BASE_URL}
-      ONEAPI_API_KEY : ${ONEAPI_API_KEY}
-      ONEAPI_MODEL : ${ONEAPI_MODEL}
-      ONEAPI_EMBEDDING_MODEL : ${ONEAPI_EMBEDDING_MODEL}
+      SPPLITTER_MODEL : ${SPPLITTER_MODEL}
     env_file:
       - .env
     networks:
       - chat2network
     ports:
-      - "${BACKEND_PORT}:9988"
+      - "9988:9988"
   chat2anything_front:
     build:
       context: ../web
       dockerfile: Dockerfile
       args:
-      - VITE_APP_BASE_URL=http://${BACKEND_HOST}:${BACKEND_PORT}
+      - VITE_APP_BASE_URL=/api
     container_name: chat2anything_frontend
     depends_on:
-      - chat2anything_backen
+      - chat2anything_backend
     networks:
       - chat2network
     ports:
-      - "${WEB_PORT}:80"
+      - "12345:80"
     environment:
-      - VITE_APP_BASE_URL=chat2anything_backen:${BACKEND_PORT}
+      - VITE_APP_BASE_URL=/api
     env_file:
       - .env
+  nginx:
+    image: nginx:alpine
+    container_name: chat2anything_nginx
+    ports:
+      - "${WEB_PORT}:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - chat2anything_backend
+      - chat2anything_front
+    networks:
+      - chat2network
