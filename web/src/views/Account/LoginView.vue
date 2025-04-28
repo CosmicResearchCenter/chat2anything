@@ -1,204 +1,161 @@
 <template>
   <div class="login-container">
-    <!-- 科技感背景元素 -->
-    <div class="tech-background">
-      <div class="tech-line line-1"></div>
-      <div class="tech-line line-2"></div>
-      <div class="tech-circle circle-1"></div>
-      <div class="tech-circle circle-2"></div>
-      <div class="tech-grid"></div>
-    </div>
-
-    <div class="login-box">
-      <!-- 品牌标识 -->
-      <div class="brand-logo">
-        <!-- <img src="assets/logo.png" alt="Logo" class="logo-image" onerror="this.style.display='none'"> -->
-        <h1 class="brand-name">Chat2anything</h1>
-      </div>
-
-      <!-- 欢迎信息 -->
-      <div class="welcome-text">
-        <h2>{{ getWelcomeText() }}</h2>
-        <p>欢迎使用我们的智能对话平台</p>
-      </div>
-
-      <div class="login-content">
-        <!-- 简化的表单切换设计 - 只有登录和注册两个选项 -->
-        <div class="form-tabs">
-          <div 
-            :class="['tab-item', { active: !isRegister }]" 
-            @click="switchToLogin"
-          >
-            <i class="el-icon-user"></i>
-            <span>登录</span>
-          </div>
-          <div 
-            :class="['tab-item', { active: isRegister }]" 
-            @click="switchToRegister"
-          >
-            <i class="el-icon-plus"></i>
-            <span>注册</span>
+    <!-- 左侧品牌区域 -->
+    <div class="brand-section">
+      <div class="brand-content">
+        <div class="logo-container">
+          <h1 class="brand-logo">Chat2Anything</h1>
+        </div>
+        <div class="brand-message">
+          <h2 class="slogan">对话万物 · 智启未来</h2>
+          <p class="description">行业领先的RAG知识库系统，搭载多模态文档解析引擎与智能对话交互架构</p>
+          <div class="feature-list">
+            <div class="feature-item">
+              <div class="feature-icon">
+                <i class="el-icon-chat-dot-round"></i>
+              </div>
+              <div class="feature-text">
+                <h3>精准语义检索</h3>
+                <p>基于RAG增强的混合检索架构，支持语义匹配+关键词检索双引擎，准确率提升40%</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">
+                <i class="el-icon-files"></i>
+              </div>
+              <div class="feature-text">
+                <h3>全格式支持</h3>
+                <p>原生解析PDF/Word/Markdown等12种格式，智能处理表格、公式、代码块等复杂内容</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">
+                <i class="el-icon-cpu"></i>
+              </div>
+              <div class="feature-text">
+                <h3>情境化交互</h3>
+                <p>支持多轮对话记忆、追问建议、上下文回溯，配备智能意图识别引擎</p>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div class="form-container" :class="currentFormClass">
-          <!-- 登录表单 -->
-          <div class="form-panel login-form" :class="{ active: !isRegister }">
-            <div class="form-group animated">
-              <el-input 
-                v-model="username" 
-                placeholder="用户名" 
-                class="input-field"
-                :prefix-icon="User"
-                @focus="inputFocus"
-                @blur="inputBlur"
-              />
-              <div class="form-error" v-if="formErrors.username">{{ formErrors.username }}</div>
-            </div>
-            <div class="form-group animated">
-              <el-input 
-                v-model="password" 
-                type="password" 
-                placeholder="密码" 
-                class="input-field"
-                :prefix-icon="Lock"
-                @keyup.enter="handleLogin"
-                @focus="inputFocus"
-                @blur="inputBlur"
-              />
-              <div class="form-error" v-if="formErrors.password">{{ formErrors.password }}</div>
-            </div>
-            
-            <div class="remember-me">
-              <el-checkbox v-model="rememberMe">记住我</el-checkbox>
-              <a href="#" class="forgot-password">忘记密码?</a>
-            </div>
-            
-            <el-button 
-              type="primary" 
-              @click="handleLogin" 
-              class="submit-button"
-              :loading="loading"
-            >
-              {{ loading ? '登录中...' : '登 录' }}
-            </el-button>
-          </div>
+      <!-- 科技感背景元素 -->
+      <div class="tech-background">
+        <div class="tech-line line-1"></div>
+        <div class="tech-line line-2"></div>
+        <div class="tech-circle circle-1"></div>
+        <div class="tech-circle circle-2"></div>
+        <div class="tech-grid"></div>
+      </div>
+    </div>
 
-          <!-- 注册表单 -->
-          <div class="form-panel register-form" :class="{ active: isRegister && !isAdminRegister }">
-            <div class="form-group animated">
-              <el-input 
-                v-model="registerForm.username" 
-                placeholder="用户名" 
-                class="input-field"
-                :prefix-icon="User"
-                @focus="inputFocus"
-                @blur="inputBlur"
-              />
-              <div class="form-error" v-if="registerFormErrors.username">{{ registerFormErrors.username }}</div>
+    <!-- 右侧登录区域 - 修改为浮动盒子 -->
+    <div class="auth-section">
+      <div class="login-box">
+        <!-- 欢迎信息 -->
+        <div class="welcome-text">
+          <h2>{{ getWelcomeText() }}</h2>
+          <p>欢迎使用我们的智能对话平台</p>
+        </div>
+
+        <div class="login-content">
+          <!-- 表单切换 -->
+          <div class="form-tabs">
+            <div :class="['tab-item', { active: !isRegister }]" @click="switchToLogin">
+              <i class="el-icon-user"></i>
+              <span>登录</span>
             </div>
-            <div class="form-group animated">
-              <el-input 
-                v-model="registerForm.password" 
-                type="password" 
-                placeholder="密码" 
-                class="input-field"
-                :prefix-icon="Lock"
-                @focus="inputFocus"
-                @blur="inputBlur"
-              />
-              <div class="form-error" v-if="registerFormErrors.password">{{ registerFormErrors.password }}</div>
-            </div>
-            <div class="form-group animated">
-              <el-input 
-                v-model="registerForm.confirmPassword" 
-                type="password" 
-                placeholder="确认密码" 
-                class="input-field"
-                :prefix-icon="Lock"
-                @keyup.enter="register"
-                @focus="inputFocus"
-                @blur="inputBlur"
-              />
-              <div class="form-error" v-if="registerFormErrors.confirmPassword">{{ registerFormErrors.confirmPassword }}</div>
-            </div>
-            <el-button 
-              type="primary" 
-              @click="register" 
-              class="submit-button"
-              :loading="loading"
-            >
-              {{ loading ? '注册中...' : '注 册' }}
-            </el-button>
-            
-            <!-- 添加管理员注册切换链接 -->
-            <div class="admin-register-toggle">
-              <a href="#" @click.prevent="switchToAdminRegister">管理员注册</a>
+            <div :class="['tab-item', { active: isRegister }]" @click="switchToRegister">
+              <i class="el-icon-plus"></i>
+              <span>注册</span>
             </div>
           </div>
 
-          <!-- 管理员注册表单 -->
-          <div class="form-panel admin-form" :class="{ active: isRegister && isAdminRegister }">
-            <div class="form-group animated">
-              <el-input 
-                v-model="adminRegisterForm.username" 
-                placeholder="管理员用户名" 
-                class="input-field"
-                :prefix-icon="User"
-                @focus="inputFocus"
-                @blur="inputBlur"
-              />
-              <div class="form-error" v-if="adminFormErrors.username">{{ adminFormErrors.username }}</div>
+          <div class="form-container" :class="currentFormClass">
+            <!-- 登录表单 -->
+            <div class="form-panel login-form" :class="{ active: !isRegister }">
+              <div class="form-group animated">
+                <el-input v-model="username" placeholder="用户名" class="input-field" :prefix-icon="User"
+                  @focus="inputFocus" @blur="inputBlur" />
+                <div class="form-error" v-if="formErrors.username">{{ formErrors.username }}</div>
+              </div>
+              <div class="form-group animated">
+                <el-input v-model="password" type="password" placeholder="密码" class="input-field" :prefix-icon="Lock"
+                  @keyup.enter="handleLogin" @focus="inputFocus" @blur="inputBlur" />
+                <div class="form-error" v-if="formErrors.password">{{ formErrors.password }}</div>
+              </div>
+
+              <div class="remember-me">
+                <el-checkbox v-model="rememberMe">记住我</el-checkbox>
+                <a href="#" class="forgot-password">忘记密码?</a>
+              </div>
+
+              <el-button type="primary" @click="handleLogin" class="submit-button" :loading="loading">
+                {{ loading ? '登录中...' : '登 录' }}
+              </el-button>
             </div>
-            <div class="form-group animated">
-              <el-input 
-                v-model="adminRegisterForm.password" 
-                type="password" 
-                placeholder="密码" 
-                class="input-field"
-                :prefix-icon="Lock"
-                @focus="inputFocus"
-                @blur="inputBlur"
-              />
-              <div class="form-error" v-if="adminFormErrors.password">{{ adminFormErrors.password }}</div>
+
+            <!-- 注册表单 -->
+            <div class="form-panel register-form" :class="{ active: isRegister && !isAdminRegister }">
+              <div class="form-group animated">
+                <el-input v-model="registerForm.username" placeholder="用户名" class="input-field" :prefix-icon="User"
+                  @focus="inputFocus" @blur="inputBlur" />
+                <div class="form-error" v-if="registerFormErrors.username">{{ registerFormErrors.username }}</div>
+              </div>
+              <div class="form-group animated">
+                <el-input v-model="registerForm.password" type="password" placeholder="密码" class="input-field"
+                  :prefix-icon="Lock" @focus="inputFocus" @blur="inputBlur" />
+                <div class="form-error" v-if="registerFormErrors.password">{{ registerFormErrors.password }}</div>
+              </div>
+              <div class="form-group animated">
+                <el-input v-model="registerForm.confirmPassword" type="password" placeholder="确认密码" class="input-field"
+                  :prefix-icon="Lock" @keyup.enter="register" @focus="inputFocus" @blur="inputBlur" />
+                <div class="form-error" v-if="registerFormErrors.confirmPassword">{{ registerFormErrors.confirmPassword
+                  }}</div>
+              </div>
+              <el-button type="primary" @click="register" class="submit-button" :loading="loading">
+                {{ loading ? '注册中...' : '注 册' }}
+              </el-button>
+
+              <!-- 添加管理员注册切换链接 -->
+              <div class="admin-register-toggle">
+                <a href="#" @click.prevent="switchToAdminRegister">管理员注册</a>
+              </div>
             </div>
-            <div class="form-group animated">
-              <el-input 
-                v-model="adminRegisterForm.confirmPassword" 
-                type="password" 
-                placeholder="确认密码" 
-                class="input-field"
-                :prefix-icon="Lock"
-                @focus="inputFocus"
-                @blur="inputBlur"
-              />
-              <div class="form-error" v-if="adminFormErrors.confirmPassword">{{ adminFormErrors.confirmPassword }}</div>
-            </div>
-            <div class="form-group animated">
-              <el-input 
-                v-model="adminRegisterForm.adminKey" 
-                type="password" 
-                placeholder="管理员密钥" 
-                class="input-field"
-                :prefix-icon="Key"
-                @keyup.enter="registerAdmin"
-                @focus="inputFocus"
-                @blur="inputBlur"
-              />
-              <div class="form-error" v-if="adminFormErrors.adminKey">{{ adminFormErrors.adminKey }}</div>
-            </div>
-            <el-button 
-              type="primary" 
-              @click="registerAdmin" 
-              class="submit-button"
-              :loading="loading"
-            >
-              {{ loading ? '注册中...' : '管理员注册' }}
-            </el-button>
-            
-            <!-- 添加返回普通注册的链接 -->
-            <div class="admin-register-toggle">
-              <a href="#" @click.prevent="switchToNormalRegister">返回普通注册</a>
+
+            <!-- 管理员注册表单 -->
+            <div class="form-panel admin-form" :class="{ active: isRegister && isAdminRegister }">
+              <div class="form-group animated">
+                <el-input v-model="adminRegisterForm.username" placeholder="管理员用户名" class="input-field"
+                  :prefix-icon="User" @focus="inputFocus" @blur="inputBlur" />
+                <div class="form-error" v-if="adminFormErrors.username">{{ adminFormErrors.username }}</div>
+              </div>
+              <div class="form-group animated">
+                <el-input v-model="adminRegisterForm.password" type="password" placeholder="密码" class="input-field"
+                  :prefix-icon="Lock" @focus="inputFocus" @blur="inputBlur" />
+                <div class="form-error" v-if="adminFormErrors.password">{{ adminFormErrors.password }}</div>
+              </div>
+              <div class="form-group animated">
+                <el-input v-model="adminRegisterForm.confirmPassword" type="password" placeholder="确认密码"
+                  class="input-field" :prefix-icon="Lock" @focus="inputFocus" @blur="inputBlur" />
+                <div class="form-error" v-if="adminFormErrors.confirmPassword">{{ adminFormErrors.confirmPassword }}
+                </div>
+              </div>
+              <div class="form-group animated">
+                <el-input v-model="adminRegisterForm.adminKey" type="password" placeholder="管理员密钥" class="input-field"
+                  :prefix-icon="Key" @keyup.enter="registerAdmin" @focus="inputFocus" @blur="inputBlur" />
+                <div class="form-error" v-if="adminFormErrors.adminKey">{{ adminFormErrors.adminKey }}</div>
+              </div>
+              <el-button type="primary" @click="registerAdmin" class="submit-button" :loading="loading">
+                {{ loading ? '注册中...' : '管理员注册' }}
+              </el-button>
+
+              <!-- 添加返回普通注册的链接 -->
+              <div class="admin-register-toggle">
+                <a href="#" @click.prevent="switchToNormalRegister">返回普通注册</a>
+              </div>
             </div>
           </div>
         </div>
@@ -379,7 +336,7 @@ const validateAdminForm = () => {
 
 const handleLogin = async () => {
   if (!validateLoginForm()) return;
-  
+
   loading.value = true;
   try {
     await login(username.value, password.value);
@@ -389,7 +346,7 @@ const handleLogin = async () => {
     } else {
       localStorage.removeItem('rememberedUsername');
     }
-    
+
     ElMessage({
       message: '登录成功',
       type: 'success',
@@ -449,8 +406,8 @@ const registerAdmin = async () => {
   loading.value = true;
   try {
     await signupAdmin(
-      adminRegisterForm.username, 
-      adminRegisterForm.password, 
+      adminRegisterForm.username,
+      adminRegisterForm.password,
       adminRegisterForm.adminKey
     );
     ElMessage({
@@ -486,21 +443,114 @@ onMounted(() => {
 <style scoped>
 .login-container {
   display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a2a3a 0%, #2d3a4a 100%);
+  width: 100%;
+  background: #f8fafc;
   position: relative;
   overflow: hidden;
   font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* 科技感背景元素 */
+/* 左侧品牌区域 */
+.brand-section {
+  flex: 1;
+  background: linear-gradient(135deg, #0c2d48 0%, #1a4f7a 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+  color: white;
+  overflow: hidden;
+  min-width: 500px;
+}
+
+.brand-content {
+  position: relative;
+  z-index: 2;
+  max-width: 600px;
+  margin: 0 0 0 12.5%;
+  /* 从居中改为靠左显示，左边距为10% */
+}
+
+.logo-container {
+  margin-bottom: 2rem;
+}
+
+.brand-logo {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #ffffff, #88c0ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+}
+
+.brand-message {
+  margin-bottom: 3rem;
+}
+
+.slogan {
+  font-size: 1.8rem;
+  margin: 0 0 1rem 0;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.description {
+  font-size: 1.1rem;
+  margin-bottom: 2.5rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 90%;
+}
+
+.feature-list {
+  margin-top: 3rem;
+}
+
+.feature-item {
+  display: flex;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.feature-icon {
+  background: rgba(255, 255, 255, 0.1);
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  font-size: 24px;
+  color: #88c0ff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.feature-text h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.feature-text p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* 科技感背景元素 - 调整位置到左侧 */
 .tech-background {
   position: absolute;
   width: 100%;
   height: 100%;
+  top: 0;
+  left: 0;
   overflow: hidden;
+  z-index: 1;
 }
 
 .tech-line {
@@ -523,7 +573,7 @@ onMounted(() => {
 
 .tech-circle {
   position: absolute;
-  border: 1px solid rgba(52, 152, 219, 0.1);
+  border: 1px solid rgba(52, 152, 219, 0.15);
   border-radius: 50%;
 }
 
@@ -551,74 +601,61 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
-    linear-gradient(rgba(52, 152, 219, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(52, 152, 219, 0.05) 1px, transparent 1px);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 50px 50px;
-  animation: gridMove 60s infinite linear;
+  opacity: 0.5;
 }
 
-@keyframes pulse {
-  0% { transform: scale(1); opacity: 0.2; }
-  50% { transform: scale(1.05); opacity: 0.3; }
-  100% { transform: scale(1); opacity: 0.2; }
-}
-
-@keyframes techLineMove {
-  0% { transform: translateX(-100%) scaleX(1); }
-  50% { transform: translateX(0%) scaleX(1.5); }
-  100% { transform: translateX(100%) scaleX(1); }
-}
-
-@keyframes gridMove {
-  0% { background-position: 0 0; }
-  100% { background-position: 50px 50px; }
+/* 右侧登录区域 - 修改为浮动盒子 */
+.auth-section {
+  width: 450px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  position: absolute;
+  z-index: 10;
+  padding: 0 2rem;
+  right: 10%;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .login-box {
-  position: relative;
   width: 100%;
-  max-width: 460px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  max-width: 380px;
   padding: 2.5rem;
-  border-radius: 12px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-  z-index: 1;
-  animation: fadeIn 0.6s ease-out;
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15),
+    0 5px 15px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(220, 230, 240, 0.5);
+  backdrop-filter: blur(10px);
   transform: translateY(0);
   transition: all 0.3s ease;
-  border: 1px solid rgba(52, 152, 219, 0.2);
+  animation: floatIn 0.6s ease-out forwards;
+  border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
 .login-box:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   transform: translateY(-5px);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.18),
+    0 10px 20px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(220, 230, 240, 0.6);
 }
 
-.brand-logo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 20px;
-  text-align: center;
-}
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
 
-.logo-image {
-  width: 70px;
-  height: 70px;
-  margin-bottom: 10px;
-}
-
-.brand-name {
-  font-size: 24px;
-  color: #333;
-  font-weight: 600;
-  margin: 0;
-  background: linear-gradient(90deg, #3498db, #2c5364);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .welcome-text {
@@ -627,28 +664,31 @@ onMounted(() => {
 }
 
 .welcome-text h2 {
-  font-size: 22px;
+  font-size: 1.5rem;
   color: #2c3e50;
   margin: 0;
   margin-bottom: 8px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #3498db, #2c3e50);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .welcome-text p {
   color: #7f8c8d;
   margin: 0;
+  font-size: 0.9rem;
 }
 
-.login-content {
-  display: flex;
-  flex-direction: column;
-}
-
+/* 表单样式优化 */
 .form-tabs {
   display: flex;
   background: #f5f8fa;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .tab-item {
@@ -690,7 +730,6 @@ onMounted(() => {
 .form-container {
   position: relative;
   min-height: 250px;
-  overflow: hidden;
 }
 
 .form-panel {
@@ -809,58 +848,41 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .login-box {
-    width: 85%;
-    padding: 2rem;
-    margin-top: -100px;
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.2;
   }
-  
-  .welcome-text h2 {
-    font-size: 20px;
+
+  50% {
+    transform: scale(1.05);
+    opacity: 0.3;
   }
-  
-  .welcome-text p {
-    font-size: 14px;
-  }
-  
-  .submit-button {
-    height: 44px;
+
+  100% {
+    transform: scale(1);
+    opacity: 0.2;
   }
 }
 
-@media (max-width: 480px) {
-  .login-box {
-    width: 95%;
-    padding: 1.5rem;
-  }
-  
-  .form-tabs {
-    margin-bottom: 20px;
-  }
-  
-  .tab-item {
-    padding: 8px;
-  }
-  
-  .form-group {
-    margin-bottom: 15px;
+@keyframes techLineMove {
+  0% {
+    transform: translateX(-100%) scaleX(1);
   }
 
-  .input-field :deep(.el-input__wrapper) {
-    padding: 8px 12px;
+  50% {
+    transform: translateX(0%) scaleX(1.5);
   }
 
-  .submit-button {
-    height: 40px;
-    font-size: 14px;
+  100% {
+    transform: translateX(100%) scaleX(1);
   }
 }
 
@@ -870,11 +892,11 @@ onMounted(() => {
 }
 
 .form-container.register-active {
-  min-height: 290px; /* 增加一点高度以适应新增的管理员链接 */
+  min-height: 290px;
 }
 
 .form-container.admin-active {
-  min-height: 360px; /* 增加一点高度以适应返回普通注册链接 */
+  min-height: 360px;
 }
 
 /* 添加管理员注册切换链接样式 */
@@ -893,6 +915,61 @@ onMounted(() => {
 .admin-register-toggle a:hover {
   color: #2980b9;
   text-decoration: underline;
+}
+
+/* 响应式设计 */
+@media (max-width: 992px) {
+  .login-container {
+    flex-direction: column;
+  }
+
+  .brand-section {
+    min-height: 300px;
+    padding: 2rem 1rem;
+    min-width: auto;
+  }
+
+  .auth-section {
+    width: 100%;
+    min-height: 500px;
+    padding: 2rem;
+    margin-top: -50px;
+    /* 创建一个重叠效果 */
+  }
+
+  .login-box {
+    max-width: 450px;
+    margin: 0 auto;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1),
+      0 5px 15px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(220, 230, 240, 0.5);
+  }
+}
+
+@media (max-width: 576px) {
+  .brand-section {
+    min-height: 200px;
+  }
+
+  .auth-section {
+    padding: 1.5rem;
+  }
+
+  .login-box {
+    padding: 1.5rem;
+  }
+
+  .slogan {
+    font-size: 1.4rem;
+  }
+
+  .description {
+    font-size: 0.9rem;
+  }
+
+  .brand-logo {
+    font-size: 2rem;
+  }
 }
 </style>
 
