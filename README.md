@@ -52,14 +52,17 @@ vim .env
 ```
 
 ### 环境变量配置说明
-必须配置的信息是EMBEDDING和LLM的API信息，其他的可以默认保持不变。以下是主要配置项说明：
+可以默认保持不变。以下是主要配置项说明：
 
 ```txt
 # 基本配置
 SECRET_KEY=chat2anything_secret_key      # 应用密钥
-BACKEND_PORT=9988                        # 后端服务端口
-BACKEND_HOST=127.0.0.1                       # 后端服务主机地址 如果你是部署在远程服务器，需要改成你远程服务器的ip
-WEB_PORT=12345                          # 前端端口
+
+# 管理员注册密钥
+ADMIN_KEY=chat2anything_admin_key
+
+在远程服务器，需要改成你远程服务器的ip
+WEB_PORT=9966                         # 访问端口
 
 
 # 数据库配置
@@ -69,28 +72,16 @@ MYSQL_BASE=chat2anything_db              # 数据库名
 MYSQL_USER=chat2anything_user            # 数据库用户
 MYSQL_PASSWORD=chat2anything_password    # 数据库密码
 
-# 向量嵌入配置
-EMBEDDING_BASE_URL=https://aihubmix.com/v1  # 向量服务地址
-EMBEDDING_API_KEY=                        # 向量服务API密钥
-EMBEDDING_MODEL_PROVIDER=OPENAI           # 向量模型提供商
-EMBEDDING_MODEL=
-# LLM配置
-LLM_PROVIDER=OPENAI                       # LLM提供商
+
 SPPLITTER_MODEL=0                         # 拆分模型参数
 
-# 搜索引擎配置
-ES_BASE_URL=chat2anything_es              # Elasticsearch服务名
-ES_BASE_PORT=9200                         # Elasticsearch端口
+# ES_BASE_URL
+ES_BASE_URL=chat2anything_es      
+ES_BASE_PORT=9200
 
-# 向量数据库配置
-MILVUS_HOST=chat2anything_milvus          # Milvus服务名
-MILVUS_PORT=19530                         # Milvus端口
-
-# OpenAI配置
-OPENAI_API_KEY=                           # OpenAI API密钥(必填)
-OPENAI_BASE_URL=https://aihubmix.com/v1   # OpenAI API地址
-OPENAI_MODEL=gpt-4o-mini                  # 使用的模型名称
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small  # 向量模型名称
+# Milvus Host
+MILVUS_HOST=chat2anything_milvus
+MILVUS_PORT=19530
 ```
 
 系统还支持其他LLM提供商，如OneAPI、智谱AI、SparkAI等，详细配置请参考.env_copy文件。
@@ -151,19 +142,6 @@ MYSQL_BASE=chat2anything_db
 MYSQL_USER=root  # 或您创建的用户
 MYSQL_PASSWORD=your_password
 
-# ElasticSearch配置
-ES_BASE_URL=localhost
-ES_BASE_PORT=9200
-
-# Milvus配置
-MILVUS_HOST=localhost
-MILVUS_PORT=19530
-
-# LLM配置（至少配置一种）
-LLM_PROVIDER=OPENAI
-OPENAI_API_KEY=your_api_key
-OPENAI_BASE_URL=https://api.openai.com/v1  # 或您的代理地址
-OPENAI_MODEL=gpt-4o-mini
 ```
 
 运行后端服务
@@ -231,7 +209,7 @@ sudo systemctl restart nginx
 ```
 
 ## 使用指南
-1. 启动服务后，访问 `http://127.0.0.1:12345` 打开Web界面
+1. 启动服务后，访问 `http://127.0.0.1:9966` 打开Web界面
 2. 通过界面上传您的知识库文档
 3. 开始与您的数据进行对话交流
 
