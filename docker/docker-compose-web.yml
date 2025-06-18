@@ -18,12 +18,7 @@ services:
       - VITE_APP_BASE_URL=/api
     env_file:
       - .env
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+
 
   nginx:
     image: nginx:alpine
@@ -33,13 +28,23 @@ services:
     env_file:
       - .env
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+      # 挂载到临时位置
+      - ./nginx.conf:/tmp/nginx.conf:ro
+      # 创建日志目录
+      - ./logs:/var/log/nginx
     depends_on:
       - chat2anything_front
     networks:
       - chat2network
+    # 使用命令替换配置文件并启动
+    command: >
+      sh -c "
+        cp /tmp/nginx.conf /etc/nginx/nginx.conf &&
+        nginx -t &&
+        nginx -g 'daemon off;'
+      "
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${WEB_PORT:-80}"]
       interval: 30s
       timeout: 10s
       retries: 3
