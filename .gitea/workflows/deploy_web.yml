@@ -22,32 +22,19 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "echo 'SSH connection successful'"
 
-      - name: Prepare remote directories
+      - name: Copy entire project to remote server
+        timeout-minutes: 15
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "rm -rf ~/chat2anything_new && mkdir -p ~/chat2anything_new"
+          scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -P ${{ secrets.SSH_PORT }} -r . ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/chat2anything_new/
+
+      - name: Move project to final location
         timeout-minutes: 2
         run: |
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "
-            rm -rf ~/chat2anything/docker_new ~/chat2anything/web_new
-            mkdir -p ~/chat2anything/docker_new ~/chat2anything/web_new
-          "
-
-      - name: Copy docker files
-        timeout-minutes: 5
-        run: |
-          scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -P ${{ secrets.SSH_PORT }} -r docker/* ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/chat2anything/docker_new/
-
-      - name: Copy web files
-        timeout-minutes: 10
-        run: |
-          scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -P ${{ secrets.SSH_PORT }} -r web ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/chat2anything/web_new/
-
-      - name: Move files to final location
-        timeout-minutes: 2
-        run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "
-            mkdir -p ~/chat2anything/docker ~/chat2anything
-            cp -r ~/chat2anything/docker_new/* ~/chat2anything/docker/
-            cp -r ~/chat2anything/web_new/web ~/chat2anything/
-            rm -rf ~/chat2anything/docker_new ~/chat2anything/web_new
+            rm -rf ~/chat2anything_backup
+            [ -d ~/chat2anything ] && mv ~/chat2anything ~/chat2anything_backup
+            mv ~/chat2anything_new ~/chat2anything
           "
 
       - name: Deploy web application on remote server
