@@ -30,9 +30,3 @@ services:
       - chat2network
     ports:
       - "9988:9988"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9988/health"] 
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
