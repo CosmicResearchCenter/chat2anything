@@ -33,8 +33,6 @@ class Settings(BaseSettings):
     # Milvus Host
     MILVUS_HOST :str 
     MILVUS_PORT :int 
-
-    RERANK_BASE_URL:str
      
     class Config:
         env_file = ".env"
