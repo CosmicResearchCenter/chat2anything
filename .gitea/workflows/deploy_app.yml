@@ -5,7 +5,71 @@ on:
       - release_app
 
 jobs:
-  build-deploy:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create test environment file
+        run: |
+          cd docker
+          cat > .env << 'EOF'
+          SECRET_KEY=test_secret_key
+          ADMIN_KEY=test_admin_key
+          MYSQL_IP=mysql
+          MYSQL_PORT=3306
+          MYSQL_USER=testuser
+          MYSQL_PASSWORD=testpass123
+          MYSQL_BASE=testdb
+          ES_BASE_URL=elasticsearch
+          ES_BASE_PORT=9200
+          MILVUS_HOST=standalone
+          MILVUS_PORT=19530
+          SPPLITTER_MODEL=default
+          WEB_PORT=80
+          EOF
+
+      - name: Create chat2network
+        run: docker network create chat2network || true
+
+      - name: Start base services for testing
+        run: |
+          cd docker
+          docker-compose -f docker-compose-base.yml up -d mysql elasticsearch
+          
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for MySQL..."
+          timeout 120s bash -c 'until docker exec chat2anything_db mysqladmin ping -h localhost -utestuser -ptestpass123 --silent; do sleep 5; done'
+          echo "Waiting for Elasticsearch..."
+          timeout 120s bash -c 'until curl -f http://localhost:9200; do sleep 5; done'
+
+      - name: Test backend build and startup
+        run: |
+          cd docker
+          docker-compose -f docker-compose-app.yml build
+          docker-compose -f docker-compose-app.yml up -d
+          
+      - name: Wait for backend to start
+        run: |
+          echo "Waiting for backend..."
+          timeout 60s bash -c 'until curl -f http://localhost:9988/health || curl -f http://localhost:9988; do sleep 5; done' || true
+
+      - name: Check backend logs
+        run: |
+          docker logs chat2anything_backend
+
+      - name: Cleanup test environment
+        if: always()
+        run: |
+          cd docker
+          docker-compose -f docker-compose-app.yml down || true
+          docker-compose -f docker-compose-base.yml down || true
+
+  deploy:
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

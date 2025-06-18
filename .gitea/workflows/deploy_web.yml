@@ -5,7 +5,52 @@ on:
       - release_web
 
 jobs:
-  build-deploy:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create test environment file
+        run: |
+          cd docker
+          cat > .env << 'EOF'
+          VITE_APP_BASE_URL=/api
+          WEB_PORT=80
+          EOF
+
+      - name: Create chat2network
+        run: docker network create chat2network || true
+
+      - name: Test frontend build
+        run: |
+          cd docker
+          docker-compose -f docker-compose-web.yml build
+          
+      - name: Test frontend startup
+        run: |
+          cd docker
+          docker-compose -f docker-compose-web.yml up -d
+          
+      - name: Wait for frontend to start
+        run: |
+          echo "Waiting for frontend..."
+          timeout 60s bash -c 'until curl -f http://localhost:80; do sleep 5; done'
+
+      - name: Check frontend logs
+        run: |
+          docker logs chat2anything_frontend
+          docker logs chat2anything_nginx
+
+      - name: Cleanup test environment
+        if: always()
+        run: |
+          cd docker
+          docker-compose -f docker-compose-web.yml down || true
+
+  deploy:
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
