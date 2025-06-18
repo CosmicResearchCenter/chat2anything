@@ -105,6 +105,16 @@
                 <div class="form-error" v-if="registerFormErrors.username">{{ registerFormErrors.username }}</div>
               </div>
               <div class="form-group animated">
+                <el-input v-model="registerForm.email" placeholder="邮箱（可选）" class="input-field" :prefix-icon="Message"
+                  @focus="inputFocus" @blur="inputBlur" />
+                <div class="form-error" v-if="registerFormErrors.email">{{ registerFormErrors.email }}</div>
+              </div>
+              <div class="form-group animated">
+                <el-input v-model="registerForm.inviteCode" placeholder="邀请码" class="input-field" :prefix-icon="Ticket"
+                  @focus="inputFocus" @blur="inputBlur" />
+                <div class="form-error" v-if="registerFormErrors.inviteCode">{{ registerFormErrors.inviteCode }}</div>
+              </div>
+              <div class="form-group animated">
                 <el-input v-model="registerForm.password" type="password" placeholder="密码" class="input-field"
                   :prefix-icon="Lock" @focus="inputFocus" @blur="inputBlur" />
                 <div class="form-error" v-if="registerFormErrors.password">{{ registerFormErrors.password }}</div>
@@ -168,7 +178,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { User, Lock, Key } from '@element-plus/icons-vue'
+import { User, Lock, Key, Message, Ticket } from '@element-plus/icons-vue'
 import { login, signup, signupAdmin } from '@/utils/http';
 
 const username = ref('');
@@ -188,6 +198,8 @@ const formErrors = reactive({
 
 const registerFormErrors = reactive({
   username: '',
+  email: '',
+  inviteCode: '',
   password: '',
   confirmPassword: ''
 });
@@ -268,6 +280,8 @@ const validateLoginForm = () => {
 const validateRegisterForm = () => {
   let isValid = true;
   registerFormErrors.username = '';
+  registerFormErrors.email = '';
+  registerFormErrors.inviteCode = '';
   registerFormErrors.password = '';
   registerFormErrors.confirmPassword = '';
 
@@ -276,6 +290,11 @@ const validateRegisterForm = () => {
     isValid = false;
   } else if (registerForm.username.length < 3) {
     registerFormErrors.username = '用户名至少需要3个字符';
+    isValid = false;
+  }
+
+  if (!registerForm.inviteCode) {
+    registerFormErrors.inviteCode = '请输入邀请码';
     isValid = false;
   }
 
@@ -365,6 +384,8 @@ const handleLogin = async () => {
 
 const registerForm = reactive({
   username: '',
+  email: '',
+  inviteCode: '',
   password: '',
   confirmPassword: ''
 });
@@ -374,13 +395,15 @@ const register = async () => {
 
   loading.value = true;
   try {
-    await signup(registerForm.username, registerForm.password);
+    await signup(registerForm.username, registerForm.password, registerForm.inviteCode, registerForm.email);
     ElMessage({
       message: '注册成功',
       type: 'success'
     });
     switchToLogin(); // 切换到登录界面
     username.value = registerForm.username; // 自动填充用户名
+    registerForm.email = '';
+    registerForm.inviteCode = '';
     registerForm.password = '';
     registerForm.confirmPassword = '';
   } catch (error: any) {
@@ -892,7 +915,7 @@ onMounted(() => {
 }
 
 .form-container.register-active {
-  min-height: 290px;
+  min-height: 380px;
 }
 
 .form-container.admin-active {

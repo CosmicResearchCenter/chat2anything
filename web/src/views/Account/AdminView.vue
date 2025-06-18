@@ -282,7 +282,8 @@ watch(
                 { title: '模型配置管理', desc: '管理所有用户', icon: 'Platform', path: 'models', color: '#13c2c2' },
               { title: '对话管理', desc: '查看所有用户对话记录', icon: 'ChatLineSquare', path: 'chat', color: '#1677ff' },
               { title: '知识库管理', desc: '管理用户知识库文档', icon: 'Collection', path: 'base', color: '#722ed1' },
-              { title: '用户管理', desc: '管理所有用户', icon: 'Setting', path: 'user', color: '#13c2c2' }
+              { title: '用户管理', desc: '管理所有用户', icon: 'Setting', path: 'user', color: '#13c2c2' },
+              { title: '邀请码管理', desc: '生成和管理邀请码', icon: 'Ticket', path: 'invite', color: '#fa8c16' }
             ]"
             :key="idx"
             @click="navigateTo(item.path)"

@@ -16,24 +16,34 @@ const router = createRouter({
       component: () => import('../views/Account/LoginView.vue')
     },
     {
-      path:"/admin",
-      name:"admin",
-      component: () => import('../views/Account/AdminView.vue')
+      path: '/admin',
+      name: 'Admin',
+      component: () => import('@/views/Account/AdminView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     },
     {
-      path:"/admin/chat",
-      name:"admin_chat",
-      component: () => import('../views/Account/AdminChatView.vue')
+      path: '/admin/user',
+      name: 'AdminUser',
+      component: () => import('@/views/Account/AdminUserView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     },
     {
-      path:"/admin/base",
-      name:"admin_base",
-      component: () => import('../views/Account/AdminBaseView.vue')
+      path: '/admin/chat',
+      name: 'AdminChat',
+      component: () => import('@/views/Account/AdminChatView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     },
     {
-      path:"/admin/user",
-      name:"admin_user",
-      component: () => import('../views/Account/AdminUserView.vue')
+      path: '/admin/base',
+      name: 'AdminBase',
+      component: () => import('@/views/Account/AdminBaseView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/invite',
+      name: 'AdminInvite',
+      component: () => import('@/views/Account/AdminInviteView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     },
     {
       path:"/admin/models",
