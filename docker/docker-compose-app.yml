@@ -1,0 +1,32 @@
+version: '3.8'
+
+networks:
+  chat2network:
+    external: true
+
+services:
+  chat2anything_backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: chat2anything_backend
+    restart: always
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      ADMIN_KEY: ${ADMIN_KEY}
+      MYSQL_IP: ${MYSQL_IP}
+      MYSQL_PORT: ${MYSQL_PORT}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_BASE: ${MYSQL_BASE}
+      ES_HOST: ${ES_BASE_URL} 
+      ES_PORT: ${ES_BASE_PORT}
+      MILVUS_HOST: ${MILVUS_HOST}
+      MILVUS_PORT: ${MILVUS_PORT}
+      SPPLITTER_MODEL: ${SPPLITTER_MODEL}
+    env_file:
+      - .env
+    networks:
+      - chat2network
+    ports:
+      - "9988:9988"

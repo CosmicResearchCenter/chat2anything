@@ -1,0 +1,40 @@
+name: Deploy Web Application
+on:
+  push:
+    branches:
+      - release_web
+
+jobs:
+  
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: SSH连接
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: SSH连接测试
+        timeout-minutes: 2
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "echo 'SSH connection successful'"
+
+      - name: 复制整个项目到远程服务器
+        timeout-minutes: 15
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "mkdir -p ~/chat2anything"
+
+          scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -P ${{ secrets.SSH_PORT }} -r . ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/chat2anything/
+
+      - name: 部署前端应用到远程服务器
+        timeout-minutes: 10
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
+            cd ~/chat2anything/docker
+            chmod +x deploy-web.sh
+            ./deploy-web.sh
+          EOF
