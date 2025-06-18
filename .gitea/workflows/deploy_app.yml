@@ -7,6 +7,7 @@ on:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -16,15 +17,43 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Copy files to remote server
+      - name: Test SSH connection
+        timeout-minutes: 2
         run: |
-          ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "mkdir -p /opt/chat2anything/docker"
-          scp -P ${{ secrets.SSH_PORT }} -r docker/* ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:/opt/chat2anything/docker/
-          scp -P ${{ secrets.SSH_PORT }} -r backend ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:/opt/chat2anything/
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "echo 'SSH connection successful'"
+
+      - name: Prepare remote directories
+        timeout-minutes: 2
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "
+            rm -rf /opt/chat2anything/docker_new /opt/chat2anything/backend_new
+            mkdir -p /opt/chat2anything/docker_new /opt/chat2anything/backend_new
+          "
+
+      - name: Copy docker files
+        timeout-minutes: 5
+        run: |
+          scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -P ${{ secrets.SSH_PORT }} -r docker/* ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:/opt/chat2anything/docker_new/
+
+      - name: Copy backend files
+        timeout-minutes: 10
+        run: |
+          scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -P ${{ secrets.SSH_PORT }} -r backend ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:/opt/chat2anything/backend_new/
+
+      - name: Move files to final location
+        timeout-minutes: 2
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "
+            mkdir -p /opt/chat2anything/docker /opt/chat2anything
+            cp -r /opt/chat2anything/docker_new/* /opt/chat2anything/docker/
+            cp -r /opt/chat2anything/backend_new/backend /opt/chat2anything/
+            rm -rf /opt/chat2anything/docker_new /opt/chat2anything/backend_new
+          "
 
       - name: Deploy backend application on remote server
+        timeout-minutes: 15
         run: |
-          ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
             cd /opt/chat2anything/docker
             chmod +x deploy-app.sh
             ./deploy-app.sh
