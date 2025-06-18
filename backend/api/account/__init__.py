@@ -9,7 +9,7 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from config.config_info import settings
 from core.database.mysql_client import MysqlClient
-from core.database.models import UserInfo
+from core.database.models import UserInfo, InviteCode
 from core.utils.utils import get_current_user
 from api.account.user import (LoginRequest,LoginResponse,SignUpRequest,
                               SignUpResponse,AccessToken,SignUpAdminRequest)
@@ -84,15 +84,60 @@ def signup(signupRequest: SignUpRequest):
     try:
         username = signupRequest.username
         password = signupRequest.password
+        invite_code = signupRequest.invite_code
+        email = signupRequest.email
         
+        # 验证邀请码
+        invite_record = mysql_client.db.query(InviteCode).filter(
+            InviteCode.code == invite_code,
+            InviteCode.is_active == True
+        ).first()
+        
+        if not invite_record:
+            raise HTTPException(status_code=400, detail="Invalid invite code")
+        
+        # 检查邀请码是否已过期
+        if invite_record.expire_at and invite_record.expire_at < datetime.datetime.now():
+            raise HTTPException(status_code=400, detail="Invite code has expired")
+        
+        # 检查邀请码使用次数
+        if invite_record.current_uses >= invite_record.max_uses:
+            raise HTTPException(status_code=400, detail="Invite code has reached maximum uses")
+        
+        # 检查用户名是否已存在
         user = mysql_client.db.query(UserInfo).filter(UserInfo.username == username).first()
         if user:
             raise HTTPException(status_code=400, detail="Username already exists")
         
+        # 检查邮箱是否已存在（如果提供了邮箱）
+        if email:
+            existing_email = mysql_client.db.query(UserInfo).filter(UserInfo.email == email).first()
+            if existing_email:
+                raise HTTPException(status_code=400, detail="Email already exists")
+        
         hashed_password = get_password_hash(password)
 
-        new_user = UserInfo(username=username, password=hashed_password,is_admin=False,delete_sign=False,create_time=datetime.datetime.now(),update_time=datetime.datetime.now())
+        new_user = UserInfo(
+            username=username, 
+            password=hashed_password,
+            email=email,
+            is_admin=False,
+            delete_sign=False,
+            status='active',
+            create_time=datetime.datetime.now(),
+            update_time=datetime.datetime.now()
+        )
         mysql_client.db.add(new_user)
+        
+        # 更新邀请码使用信息
+        invite_record.current_uses += 1
+        invite_record.used_by = username
+        invite_record.used_at = datetime.datetime.now()
+        
+        # 如果达到最大使用次数，标记为已使用
+        if invite_record.current_uses >= invite_record.max_uses:
+            invite_record.is_used = True
+        
         mysql_client.db.commit()
         mysql_client.db.refresh(new_user)
 

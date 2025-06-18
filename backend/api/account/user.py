@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Any,List,Dict
+from typing import Any,List,Dict,Optional
 class LoginRequest(BaseModel):
     username: str
     password: str
@@ -10,14 +10,16 @@ class AccessToken(BaseModel):
 
 class LoginResponse(BaseModel):
     code: int
-    data:AccessToken
     message: str
+    data: AccessToken
 
 
 
 class SignUpRequest(BaseModel):
     username: str
     password: str
+    invite_code: str  # 添加邀请码字段
+    email: Optional[str] = None
 
 class SignUpAdminRequest(BaseModel):
     username: str
@@ -27,8 +29,8 @@ class SignUpAdminRequest(BaseModel):
 
 class SignUpResponse(BaseModel):
     code: int
-    data:AccessToken
     message: str
+    data: AccessToken
 
 class TestResponse(BaseModel):
     code: int

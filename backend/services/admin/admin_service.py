@@ -1,6 +1,6 @@
 from core.rag.rag_pipeline import RAG_Pipeline
 from core.database.mysql_client import MysqlClient
-from core.database.models import KnowledgeBase,UserInfo,Chat_Messages,Conversation,DocInfo
+from core.database.models import KnowledgeBase,UserInfo,Chat_Messages,Conversation,DocInfo,InviteCode
 from core.database.models import LLMProviderConfig, EmbeddingModelConfig, ReRankModelConfig # 导入模型
 from core.database.models import LLMVendorType, EmbeddingVendorType, ReRankVendorType # 导入类型枚举
 from core.rag.database.milvus.milvus_client import MilvusCollectionManager
@@ -25,6 +25,8 @@ from typing import List,Tuple, Optional, Dict, Any, Union
 from datetime import datetime, timedelta
 import calendar
 from sqlalchemy import or_, desc, asc, func # 导入 or_, desc, asc, func
+import secrets
+import string
 
 class AdminService:
     def __init__(self):
@@ -1349,6 +1351,121 @@ class AdminService:
         except ValueError:
             raise ValueError(f"无效的提供商类型: {vendor_type}")
     
+    # ---------- 邀请码管理 ----------
+    
+    def generate_invite_code(self, admin_username: str, max_uses: int = 1, expire_hours: Optional[int] = None, description: Optional[str] = None) -> Dict[str, Any]:
+        """生成邀请码"""
+        mysql_client = MysqlClient()
+        
+        # 生成32位随机邀请码
+        code = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+        
+        # 确保邀请码唯一
+        while mysql_client.db.query(InviteCode).filter(InviteCode.code == code).first():
+            code = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+        
+        # 计算过期时间
+        expire_at = None
+        if expire_hours:
+            expire_at = datetime.now() + timedelta(hours=expire_hours)
+        
+        # 创建邀请码记录
+        invite_code = InviteCode(
+            code=code,
+            created_by=admin_username,
+            created_at=datetime.now(),
+            max_uses=max_uses,
+            expire_at=expire_at,
+            description=description
+        )
+        
+        mysql_client.db.add(invite_code)
+        mysql_client.db.commit()
+        mysql_client.db.refresh(invite_code)
+        
+        return invite_code.to_dict()
+    
+    def get_all_invite_codes(self, page: int = 1, page_size: int = 20) -> Tuple[List[Dict[str, Any]], int]:
+        """获取所有邀请码"""
+        mysql_client = MysqlClient()
+        
+        query = mysql_client.db.query(InviteCode).order_by(desc(InviteCode.created_at))
+        
+        # 获取总数
+        total = query.count()
+        
+        # 分页
+        offset = (page - 1) * page_size
+        invite_codes = query.offset(offset).limit(page_size).all()
+        
+        codes_list = [code.to_dict() for code in invite_codes]
+        
+        return codes_list, total
+    
+    def delete_invite_code(self, code_id: int, admin_username: str) -> bool:
+        """删除邀请码"""
+        mysql_client = MysqlClient()
+        
+        invite_code = mysql_client.db.query(InviteCode).filter(InviteCode.id == code_id).first()
+        
+        if not invite_code:
+            return False
+        
+        # 只有创建者或admin可以删除
+        if invite_code.created_by != admin_username and admin_username != 'admin':
+            return False
+        
+        mysql_client.db.delete(invite_code)
+        mysql_client.db.commit()
+        
+        return True
+    
+    def update_invite_code(self, code_id: int, admin_username: str, update_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """更新邀请码"""
+        mysql_client = MysqlClient()
+        
+        invite_code = mysql_client.db.query(InviteCode).filter(InviteCode.id == code_id).first()
+        
+        if not invite_code:
+            return None
+        
+        # 只有创建者或admin可以更新
+        if invite_code.created_by != admin_username and admin_username != 'admin':
+            return None
+        
+        # 更新字段
+        for key, value in update_data.items():
+            if hasattr(invite_code, key) and key not in ['id', 'code', 'created_by', 'created_at', 'used_by', 'used_at']:
+                setattr(invite_code, key, value)
+        
+        mysql_client.db.commit()
+        mysql_client.db.refresh(invite_code)
+        
+        return invite_code.to_dict()
+    
+    def get_invite_code_stats(self) -> Dict[str, Any]:
+        """获取邀请码统计信息"""
+        mysql_client = MysqlClient()
+        
+        total_codes = mysql_client.db.query(InviteCode).count()
+        used_codes = mysql_client.db.query(InviteCode).filter(InviteCode.is_used == True).count()
+        active_codes = mysql_client.db.query(InviteCode).filter(
+            InviteCode.is_active == True,
+            InviteCode.is_used == False
+        ).count()
+        
+        # 过期但未使用的邀请码
+        expired_codes = mysql_client.db.query(InviteCode).filter(
+            InviteCode.expire_at < datetime.now(),
+            InviteCode.is_used == False
+        ).count()
+        
+        return {
+            "total_codes": total_codes,
+            "used_codes": used_codes,
+            "active_codes": active_codes,
+            "expired_codes": expired_codes
+        }
     
 if __name__ == "__main__":
     admin_service = AdminService()

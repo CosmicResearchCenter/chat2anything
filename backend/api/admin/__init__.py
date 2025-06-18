@@ -39,9 +39,131 @@ from .admin import (ResponseGenral,
                     ReRankConfigCreate,
                     ReRankConfigUpdate,
                     ReRankConfigResponse,
-                    ReRankConfigListResponse
+                    ReRankConfigListResponse,
+                    # 邀请码相关模型
+                    InviteCodeCreate,
+                    InviteCodeResponse,
+                    InviteCodeListResponse,
+                    InviteCodeUpdateRequest
                     )
 router = APIRouter()
+
+# 生成邀请码
+@router.post("/generate_invite_code", response_model=ResponseGenral)
+async def generate_invite_code(
+    invite_data: InviteCodeCreate = Body(...),
+    admin_user: str = Depends(get_is_admin)
+):
+    """生成邀请码"""
+    admin_username = admin_user.data[0]['username']
+    admin_service = AdminService()
+    
+    try:
+        invite_code = admin_service.generate_invite_code(
+            admin_username=admin_username,
+            max_uses=invite_data.max_uses or 1,
+            expire_hours=invite_data.expire_hours,
+            description=invite_data.description
+        )
+        
+        return ResponseGenral(
+            code=200,
+            message="邀请码生成成功",
+            data=[invite_code]
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"生成邀请码失败: {str(e)}"
+        )
+
+# 删除邀请码
+@router.delete("/delete_invite_code/{invite_code_id}", response_model=ResponseGenral)
+async def delete_invite_code(
+    invite_code_id: int = Path(..., description="邀请码ID"),
+    admin_user: str = Depends(get_is_admin)
+):
+    """删除邀请码"""
+    admin_username = admin_user.data[0]['username']
+    admin_service = AdminService()
+    
+    success = admin_service.delete_invite_code(invite_code_id, admin_username)
+    
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail="邀请码不存在或权限不足"
+        )
+    
+    return ResponseGenral(
+        code=200,
+        message="邀请码删除成功",
+        data={}
+    )
+
+# 获取所有邀请码
+@router.get("/invite_codes", response_model=ResponseGenral)
+async def get_invite_codes(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    admin_user: str = Depends(get_is_admin)
+):
+    """获取所有邀请码"""
+    admin_service = AdminService()
+    invite_codes, total = admin_service.get_all_invite_codes(page, page_size)
+    
+    return ResponseGenral(
+        code=200,
+        message="获取邀请码列表成功",
+        data=[{
+            "invite_codes": invite_codes,
+            "total": total,
+            "page": page,
+            "page_size": page_size
+        }]
+    )
+
+# 更新邀请码
+@router.put("/invite_code/{invite_code_id}", response_model=ResponseGenral)
+async def update_invite_code(
+    invite_code_id: int = Path(..., description="邀请码ID"),
+    update_data: InviteCodeUpdateRequest = Body(...),
+    admin_user: str = Depends(get_is_admin)
+):
+    """更新邀请码"""
+    admin_username = admin_user.data[0]['username']
+    admin_service = AdminService()
+    
+    invite_code = admin_service.update_invite_code(
+        invite_code_id, 
+        admin_username, 
+        update_data.dict(exclude_unset=True)
+    )
+    
+    if not invite_code:
+        raise HTTPException(
+            status_code=404,
+            detail="邀请码不存在或权限不足"
+        )
+    
+    return ResponseGenral(
+        code=200,
+        message="邀请码更新成功",
+        data=[invite_code]
+    )
+
+# 获取邀请码统计信息
+@router.get("/invite_code_stats", response_model=ResponseGenral)
+async def get_invite_code_stats(admin_user: str = Depends(get_is_admin)):
+    """获取邀请码统计信息"""
+    admin_service = AdminService()
+    stats = admin_service.get_invite_code_stats()
+    
+    return ResponseGenral(
+        code=200,
+        message="获取邀请码统计成功",
+        data=[stats]
+    )
 
 # 获取系统基本信息
 @router.get("/system_info", response_model=ResponseGenral)

@@ -207,3 +207,36 @@ class ReRankModelConfig(Base):
     base_url = Column(String(255), nullable=True)
     api_key = Column(String(255), nullable=True)
     model = Column(String(100), nullable=True)
+
+# 邀请码表
+class InviteCode(Base):
+    __tablename__ = 'invite_codes'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(32), unique=True, index=True, nullable=False)  # 邀请码
+    created_by = Column(String(255), nullable=False)  # 创建者（管理员用户名）
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    used_by = Column(String(255), nullable=True)  # 使用者用户名
+    used_at = Column(TIMESTAMP, nullable=True)  # 使用时间
+    is_used = Column(Boolean, default=False)  # 是否已使用
+    is_active = Column(Boolean, default=True)  # 是否启用
+    expire_at = Column(TIMESTAMP, nullable=True)  # 过期时间（可选）
+    max_uses = Column(Integer, default=1)  # 最大使用次数
+    current_uses = Column(Integer, default=0)  # 当前使用次数
+    description = Column(String(255), nullable=True)  # 描述
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "code": self.code,
+            "created_by": self.created_by,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "used_by": self.used_by,
+            "used_at": self.used_at.isoformat() if self.used_at else None,
+            "is_used": self.is_used,
+            "is_active": self.is_active,
+            "expire_at": self.expire_at.isoformat() if self.expire_at else None,
+            "max_uses": self.max_uses,
+            "current_uses": self.current_uses,
+            "description": self.description
+        }

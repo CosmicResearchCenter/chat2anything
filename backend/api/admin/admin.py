@@ -149,3 +149,33 @@ class ReRankConfigListResponse(BaseModel):
     code: int
     message: str
     data: List[ReRankConfigResponse]
+
+# 邀请码相关模型
+class InviteCodeCreate(BaseModel):
+    max_uses: Optional[int] = 1
+    expire_hours: Optional[int] = None  # 过期小时数，None表示永不过期
+    description: Optional[str] = None
+
+class InviteCodeResponse(BaseModel):
+    id: int
+    code: str
+    created_by: str
+    created_at: str
+    used_by: Optional[str] = None
+    used_at: Optional[str] = None
+    is_used: bool
+    is_active: bool
+    expire_at: Optional[str] = None
+    max_uses: int
+    current_uses: int
+    description: Optional[str] = None
+
+class InviteCodeListResponse(BaseModel):
+    code: int
+    message: str
+    data: List[InviteCodeResponse]
+
+class InviteCodeUpdateRequest(BaseModel):
+    is_active: Optional[bool] = None
+    description: Optional[str] = None
+    max_uses: Optional[int] = None
