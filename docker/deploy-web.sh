@@ -4,16 +4,6 @@ set -e
 
 echo "开始部署Web应用..."
 
-# 检查环境文件
-if [ ! -f .env ]; then
-    echo "复制环境配置文件..."
-    if [ -f .env_copy ]; then
-        cp .env_copy .env
-    else
-        echo "错误: 未找到环境配置文件 .env_copy"
-        exit 1
-    fi
-fi
 
 # 检查网络是否存在，如果不存在则创建
 echo "检查Docker网络..."
