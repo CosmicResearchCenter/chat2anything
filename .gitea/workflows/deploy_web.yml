@@ -57,6 +57,8 @@ jobs:
       - name: 复制整个项目到远程服务器
         timeout-minutes: 15
         run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "mkdir -p ~/chat2anything"
+
           scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -P ${{ secrets.SSH_PORT }} -r . ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/chat2anything/
 
       - name: 部署前端应用到远程服务器
