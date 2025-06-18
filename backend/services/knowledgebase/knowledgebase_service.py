@@ -47,11 +47,18 @@ class KBase(MysqlClient):
     def __init__(self):
         super().__init__()
         self.index_status = False
-        self.default_llm_config = GetDeafultLLM_Chat()
-        self.default_embedding_config = GetDefaultEmbedding()
+        # self.default_llm_config = GetDeafultLLM_Chat()
+        # self.default_embedding_config = GetDefaultEmbedding()
 
     def __del__(self):
         super().__del__()
+
+    def _get_default_llm_config(self):
+        return GetDeafultLLM_Chat()
+    
+    def _get_default_embedding_config(self):
+        return GetDefaultEmbedding()
+    
     # 创建知识库
     def create_kb(self, kb_name:str,username:str)->KnowledgeBase:
         rAG_Pipeline:RAG_Pipeline = RAG_Pipeline()
@@ -232,9 +239,11 @@ class KBase(MysqlClient):
         
         try:
             print(f'开始拆分文档: {doc_path}，使用模型: {splitterModel}')
-            
+            default_llm_config = self._get_default_llm_config()
+            default_embedding_config = self._get_default_embedding_config()
+                      
 
-            docs = rAG_Pipeline.split_files(str(doc_path), splitter_args, splitterModel,split_LLM_PROVIDER=self.default_llm_config.vendor_type,split_llm=self.default_llm_config.model)
+            docs = rAG_Pipeline.split_files(str(doc_path), splitter_args, splitterModel,split_LLM_PROVIDER=default_llm_config.vendor_type,split_llm=default_llm_config.model)
             print(f'文档拆分完成: {doc.doc_name}, 共拆分为 {len(docs)} 个段落')
             
             print(f'开始插入知识库: {base_id}')
@@ -243,8 +252,8 @@ class KBase(MysqlClient):
                                               knowledge_base_id=base_id, 
                                               doc_name=doc.doc_name, 
                                               knowledge_doc_id=doc.save_id, 
-                                              Embedding_Provider=self.default_embedding_config.vendor_type, 
-                                              Embedding_Model=self.default_embedding_config.model)
+                                              Embedding_Provider=default_embedding_config.vendor_type, 
+                                              Embedding_Model=default_embedding_config.model)
             print(f'成功插入知识库: {doc.doc_name}')
         except Exception as e:
             print(f"处理文档时发生错误 {doc.doc_name}: {str(e)}")

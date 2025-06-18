@@ -26,8 +26,14 @@ class RAG_Pipeline:
         # self.LLM_Model:str = LLM_Model
         # self.Embedding_Provider:str = Embedding_Provider
         # self.Embedding_Model:str = Embedding_Model
-        self.default_llm_config = GetDeafultLLM_Chat()
-        self.default_embedding_config = GetDefaultEmbedding()
+        # self.default_llm_config = GetDeafultLLM_Chat()
+        # self.default_embedding_config = GetDefaultEmbedding()
+
+    def _get_default_llm_config(self):
+        return GetDeafultLLM_Chat()
+    def _get_default_embedding_config(self):
+        return GetDefaultEmbedding()
+
     #创建知识库
     def create_knowledgebase(self, knowledge_base_name: str,username:str="admin"):
         knowledge_base_id = self.mysql_client.AddKnowledgeBasesList(knowledge_base_name,username=username).knowledgeBaseId
@@ -80,8 +86,10 @@ class RAG_Pipeline:
     #文档召回
     def retriever_by_knowledgebase(self, question: str, knowledge_base_id: str,rag_model: int = 0):
         # 0 混合检索 1 向量检索 2 文档检索
-        print(self.default_embedding_config.vendor_type)
-        embeddingMode = EmbeddingManager().create_embedding(embedding_provider=self.default_embedding_config.vendor_type,model=self.default_embedding_config.model)
+        default_embedding_config = self._get_default_embedding_config()
+        print(default_embedding_config.vendor_type)
+
+        embeddingMode = EmbeddingManager().create_embedding(embedding_provider=default_embedding_config.vendor_type,model=default_embedding_config.model)
         vector = embeddingMode.embed_with_str(question, "query")
         
         result: List[SourceDocument] = []

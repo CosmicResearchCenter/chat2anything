@@ -18,10 +18,16 @@ class Chat:
         self.user_id = user_id
         self.mysql_session = MysqlClient().SessionLocal()
         self.rag:RAG_Pipeline  = rag
-        self.default_llm_config = GetDeafultLLM_Chat()
-        self.default_embedding_config = GetDefaultEmbedding()
+        # self.default_llm_config = GetDeafultLLM_Chat()
+        # self.default_embedding_config = GetDefaultEmbedding()
     def __del__(self):
         self.mysql_session.close()
+    
+    def _get_default_llm_config(self):
+        return GetDeafultLLM_Chat()
+    
+    def _get_default_embedding_config(self):
+        return GetDefaultEmbedding()
     #创建对话
     def create_conversation(self,knowledgeBaseId:str,username)->Conversation:
         try:
@@ -59,7 +65,11 @@ class Chat:
             print(f"Erreor:{e}")
     # 生成对话标题
     def generate_conversation_title(self, conversation_id,username:str)->str:
-        llm = LLM_Manager().creatLLM(mode_provider=self.default_llm_config.vendor_type,model=self.default_llm_config.model)
+
+        default_llm_config = self._get_default_llm_config()
+
+
+        llm = LLM_Manager().creatLLM(mode_provider=default_llm_config.vendor_type,model=default_llm_config.model)
                 
         conversation_messages = self.load_conversation(conversation_id,username=username)
         messageLogs = self.format_conversation_Log(conversation_messages)
@@ -204,8 +214,8 @@ content: {item['content']}
     # 回答问题
     def answer_question(self, resultByDoc: ResultByDoc,history_message=[],streaming=False):
         # rAG_Pipeline = RAG_Pipeline()
-            
-        answer = self.rag.generate_answer_by_knowledgebase(resultByDoc=resultByDoc,history_messages=history_message,streaming=streaming,LLM_Provider=self.default_llm_config.vendor_type,LLM_Model=self.default_llm_config.model)
+        default_llm_config = self._get_default_llm_config()
+        answer = self.rag.generate_answer_by_knowledgebase(resultByDoc=resultByDoc,history_messages=history_message,streaming=streaming,LLM_Provider=default_llm_config.vendor_type,LLM_Model=default_llm_config.model)
         if isinstance(answer, str):
             print(answer)
             print("answer")
