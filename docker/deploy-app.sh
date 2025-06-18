@@ -14,16 +14,23 @@ fi
 echo "创建Docker网络..."
 docker network create chat2network 2>/dev/null || echo "网络已存在"
 
+# 检查是否有docker compose或docker-compose
+if command -v docker-compose &> /dev/null; then
+    COMPOSE_CMD="docker-compose"
+else
+    COMPOSE_CMD="docker compose"
+fi
+
 # 停止并移除旧的后端容器
 echo "停止旧的后端容器..."
-docker-compose -f docker-compose-app.yml down || true
+$COMPOSE_CMD -f docker-compose-app.yml down || true
 
 # 构建并启动后端服务
 echo "构建后端镜像..."
-docker-compose -f docker-compose-app.yml build --no-cache
+$COMPOSE_CMD -f docker-compose-app.yml build --no-cache
 
 echo "启动后端服务..."
-docker-compose -f docker-compose-app.yml up -d
+$COMPOSE_CMD -f docker-compose-app.yml up -d
 
 # 等待服务启动
 echo "等待后端服务启动..."
@@ -31,12 +38,12 @@ sleep 10
 
 # 检查服务状态
 echo "检查服务状态..."
-if docker-compose -f docker-compose-app.yml ps | grep -q "Up"; then
+if $COMPOSE_CMD -f docker-compose-app.yml ps | grep -q "Up"; then
     echo "✅ 后端部署成功！"
-    docker-compose -f docker-compose-app.yml ps
+    $COMPOSE_CMD -f docker-compose-app.yml ps
 else
     echo "❌ 后端部署失败！"
-    docker-compose -f docker-compose-app.yml logs
+    $COMPOSE_CMD -f docker-compose-app.yml logs
     exit 1
 fi
 

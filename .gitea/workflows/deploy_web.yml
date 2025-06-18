@@ -26,12 +26,12 @@ jobs:
       - name: Test frontend build
         run: |
           cd docker
-          docker-compose -f docker-compose-web.yml build
+          docker compose -f docker-compose-web.yml build
           
       - name: Test frontend startup
         run: |
           cd docker
-          docker-compose -f docker-compose-web.yml up -d
+          docker compose -f docker-compose-web.yml up -d
           
       - name: Wait for frontend to start
         run: |
@@ -47,7 +47,7 @@ jobs:
         if: always()
         run: |
           cd docker
-          docker-compose -f docker-compose-web.yml down || true
+          docker compose -f docker-compose-web.yml down || true
 
   deploy:
     needs: test

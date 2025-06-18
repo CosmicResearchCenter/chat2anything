@@ -29,7 +29,7 @@ services:
     image: nginx:alpine
     container_name: chat2anything_nginx
     ports:
-      - "${WEB_PORT:80}:80"
+      - "${WEB_PORT:-80}:80"
     env_file:
       - .env
     volumes:

@@ -37,7 +37,7 @@ jobs:
       - name: Start base services for testing
         run: |
           cd docker
-          docker-compose -f docker-compose-base.yml up -d mysql elasticsearch
+          docker compose -f docker-compose-base.yml up -d mysql elasticsearch
           
       - name: Wait for services to be ready
         run: |
@@ -49,8 +49,8 @@ jobs:
       - name: Test backend build and startup
         run: |
           cd docker
-          docker-compose -f docker-compose-app.yml build
-          docker-compose -f docker-compose-app.yml up -d
+          docker compose -f docker-compose-app.yml build
+          docker compose -f docker-compose-app.yml up -d
           
       - name: Wait for backend to start
         run: |
@@ -65,8 +65,8 @@ jobs:
         if: always()
         run: |
           cd docker
-          docker-compose -f docker-compose-app.yml down || true
-          docker-compose -f docker-compose-base.yml down || true
+          docker compose -f docker-compose-app.yml down || true
+          docker compose -f docker-compose-base.yml down || true
 
   deploy:
     needs: test
