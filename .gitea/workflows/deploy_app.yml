@@ -26,35 +26,35 @@ jobs:
         timeout-minutes: 2
         run: |
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "
-            rm -rf /opt/chat2anything/docker_new /opt/chat2anything/backend_new
-            mkdir -p /opt/chat2anything/docker_new /opt/chat2anything/backend_new
+            rm -rf ~/chat2anything/docker_new ~/chat2anything/backend_new
+            mkdir -p ~/chat2anything/docker_new ~/chat2anything/backend_new
           "
 
       - name: Copy docker files
         timeout-minutes: 5
         run: |
-          scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -P ${{ secrets.SSH_PORT }} -r docker/* ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:/opt/chat2anything/docker_new/
+          scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -P ${{ secrets.SSH_PORT }} -r docker/* ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/chat2anything/docker_new/
 
       - name: Copy backend files
         timeout-minutes: 10
         run: |
-          scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -P ${{ secrets.SSH_PORT }} -r backend ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:/opt/chat2anything/backend_new/
+          scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -P ${{ secrets.SSH_PORT }} -r backend ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:~/chat2anything/backend_new/
 
       - name: Move files to final location
         timeout-minutes: 2
         run: |
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} "
-            mkdir -p /opt/chat2anything/docker /opt/chat2anything
-            cp -r /opt/chat2anything/docker_new/* /opt/chat2anything/docker/
-            cp -r /opt/chat2anything/backend_new/backend /opt/chat2anything/
-            rm -rf /opt/chat2anything/docker_new /opt/chat2anything/backend_new
+            mkdir -p ~/chat2anything/docker ~/chat2anything
+            cp -r ~/chat2anything/docker_new/* ~/chat2anything/docker/
+            cp -r ~/chat2anything/backend_new/backend ~/chat2anything/
+            rm -rf ~/chat2anything/docker_new ~/chat2anything/backend_new
           "
 
       - name: Deploy backend application on remote server
         timeout-minutes: 15
         run: |
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
-            cd /opt/chat2anything/docker
+            cd ~/chat2anything/docker
             chmod +x deploy-app.sh
             ./deploy-app.sh
           EOF
