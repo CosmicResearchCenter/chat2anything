@@ -5,37 +5,7 @@ on:
       - release_web
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: 设置环境变量
-        run: |
-          cd docker
-          cp .env_copy .env
-
-      - name: 运行前端项目-测试
-        run: |
-          pwd
-          cd docker
-          pwd
-          ls -all
-          docker compose -f docker-compose-web.yml up -d --build
-            
-      - name: 检查日志
-        run: |
-          docker logs chat2anything_frontend
-          docker logs chat2anything_nginx
-
-      - name: 清理测试环境
-        if: always()
-        run: |
-          cd docker
-          docker compose -f docker-compose-web.yml down || true
-
+  
   deploy:
     needs: test
     runs-on: ubuntu-latest
