@@ -19,8 +19,10 @@ jobs:
 
       - name: 运行前端项目-测试
         run: |
+          pwd
           cd docker
-          ls
+          pwd
+          ls -all
           docker compose -f docker-compose-web.yml up -d --build
             
       - name: 检查前端服务是否启动
