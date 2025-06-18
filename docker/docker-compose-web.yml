@@ -19,7 +19,6 @@ services:
     env_file:
       - .env
 
-
   nginx:
     image: nginx:alpine
     container_name: chat2anything_nginx
@@ -33,3 +32,5 @@ services:
       - chat2anything_front
     networks:
       - chat2network
+    extra_hosts:
+      - "chat2anything_backend:host-gateway"
