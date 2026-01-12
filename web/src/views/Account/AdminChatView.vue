@@ -1,65 +1,126 @@
 <template>
-  <el-container class="chat-container" :class="{ 'dark-mode': isDarkMode }">
+  <div class="admin-chat-layout">
     <!-- 左侧用户列表 -->
-    <el-aside class="chat-aside">
-      <div class="aside-header">
-        <el-input v-model="searchUser" placeholder="搜索用户..." prefix-icon="Search" />
-        <!-- <el-switch v-model="isDarkMode" class="theme-switch" size="small" /> -->
+    <aside class="sidebar-left">
+      <div class="sidebar-header">
+        <h3 class="sidebar-title">用户列表</h3>
+        <el-input
+          v-model="searchUser"
+          placeholder="搜索用户..."
+          class="search-input"
+          :prefix-icon="Search"
+          size="small"
+        />
       </div>
-      <div class="user-list custom-scrollbar">
-        <div v-for="user in filteredUsers" :key="user.id"
+      <div class="sidebar-content custom-scrollbar">
+        <div
+          v-for="user in filteredUsers"
+          :key="user.id"
           class="user-item"
           :class="{ active: currentUserId === user.id }"
-          @click="handleUserClick(user.id)">
-          <el-avatar :size="32" :src="user.avatar">{{ user.username.charAt(0) }}</el-avatar>
+          @click="handleUserClick(user.id)"
+        >
+          <el-avatar :size="32" :src="user.avatar" class="user-avatar">
+            {{ user.username.charAt(0) }}
+          </el-avatar>
           <span class="username">{{ user.username }}</span>
         </div>
+        <div v-if="filteredUsers.length === 0" class="empty-state">
+          暂无用户
+        </div>
       </div>
-    </el-aside>
+    </aside>
 
     <!-- 中间对话列表 -->
-    <el-main class="chat-main">
-      <div v-if="currentUserId" class="conversation-list">
-        <div v-for="conv in userConversations" :key="conv.id"
-          class="conversation-item"
-          :class="{ active: currentConvId === conv.id, deleted: conv.delete_sign }"
-          @click="handleConversationClick(conv.id)">
-          <div class="conv-info">
-            <div class="conv-title">{{ conv.title }}</div>
-            <div class="conv-time">{{ formatDate(conv.created_at) }}</div>
-            <span v-if="conv.delete_sign" class="delete-sign">已删除</span>
+    <main class="main-content">
+      <div class="content-header">
+        <h3>{{ currentUserId ? '用户对话列表' : '请选择用户' }}</h3>
+      </div>
+      <div class="content-body custom-scrollbar">
+        <div v-if="currentUserId" class="conversation-list">
+          <div
+            v-for="conv in userConversations"
+            :key="conv.id"
+            class="conversation-item"
+            :class="{
+              active: currentConvId === conv.id,
+              deleted: conv.delete_sign
+            }"
+            @click="handleConversationClick(conv.id)"
+          >
+            <div class="conv-info">
+              <div class="conv-title">{{ conv.title }}</div>
+              <div class="conv-meta">
+                <span class="conv-time">{{ formatDate(conv.created_at) }}</span>
+                <span v-if="conv.delete_sign" class="delete-badge">已删除</span>
+              </div>
+            </div>
+            <el-button
+              link
+              type="danger"
+              size="small"
+              @click.stop="confirmDeleteConversation(conv)"
+            >
+              删除
+            </el-button>
           </div>
-          <el-button link type="danger" @click.stop="confirmDeleteConversation(conv)">删除</el-button>
+          <div v-if="userConversations.length === 0" class="empty-state">
+            暂无对话记录
+          </div>
+        </div>
+        <div v-else class="empty-placeholder">
+          <div class="placeholder-content">
+            <el-icon class="placeholder-icon"><ChatLineRound /></el-icon>
+            <p>请选择左侧用户查看对话记录</p>
+          </div>
         </div>
       </div>
-      <div v-else class="no-selection">
-        请选择用户查看对话记录
-      </div>
-    </el-main>
+    </main>
 
     <!-- 右侧聊天记录 -->
-    <el-aside class="chat-aside-right">
-      <div v-if="currentConvId" class="message-list">
-        <div v-for="msg in conversationMessages" :key="msg.id" class="message-item"
-          :class="{ 'user-message': msg.role === 'user', 'assistant-message': msg.role === 'assistant' }">
-          <div class="message-header">
-            <span class="role">{{ msg.role === 'user' ? '用户' : 'AI' }}</span>
-            <span class="time">{{ formatTime(msg.created_at) }}</span>
+    <aside class="sidebar-right">
+      <div class="content-header">
+        <h3>{{ currentConvId ? '对话详情' : '消息记录' }}</h3>
+      </div>
+      <div class="content-body custom-scrollbar">
+        <div v-if="currentConvId" class="message-list">
+          <div
+            v-for="msg in conversationMessages"
+            :key="msg.id"
+            class="message-item"
+            :class="{
+              'user-message': msg.role === 'user',
+              'assistant-message': msg.role === 'assistant'
+            }"
+          >
+            <div class="message-header">
+              <span class="role-badge" :class="msg.role">
+                {{ msg.role === 'user' ? '用户' : '助手' }}
+              </span>
+              <span class="time">{{ formatTime(msg.created_at) }}</span>
+            </div>
+            <div class="message-content">{{ msg.content }}</div>
           </div>
-          <div class="message-content">{{ msg.content }}</div>
+          <div v-if="conversationMessages.length === 0" class="empty-state">
+            暂无消息
+          </div>
+        </div>
+        <div v-else class="empty-placeholder">
+          <div class="placeholder-content">
+            <el-icon class="placeholder-icon"><Message /></el-icon>
+            <p>选择对话查看详细消息记录</p>
+          </div>
         </div>
       </div>
-      <div v-else class="no-selection">
-        请选择对话查看详细记录
-      </div>
-    </el-aside>
-  </el-container>
+    </aside>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { getRequest,deleteRequest } from '@/utils/http';
-import { ElMessageBox,ElMessage } from 'element-plus';
+import { getRequest, deleteRequest } from '@/utils/http';
+import { ElMessageBox, ElMessage } from 'element-plus';
+import { Search, ChatLineRound, Message } from '@element-plus/icons-vue';
 
 const searchUser = ref('');
 const currentUserId = ref('');
@@ -187,166 +248,411 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.chat-container {
-  height: 100vh;
-  background: var(--bg-color, #f5f7fa);
-  transition: all 0.3s ease;
-}
-
-.chat-container.dark-mode {
-  --bg-color: #1a1a1a;
-  --card-bg: #242424;
-  --text-color: #fff;
-  --border-color: #333;
-  color: var(--text-color);
-}
-
-.chat-aside{
-  width: 20% !important;
-  background: var(--card-bg, #fff);
-  border-right: 1px solid var(--border-color, #eee);
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  margin: 12px;
-  padding: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-
-.aside-header {
+.admin-chat-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr 3fr;
+  gap: 16px;
+  height: 100%;
   padding: 16px;
-  border-bottom: 1px solid var(--border-color, #eee);
+  background: var(--bg-main);
+  overflow: hidden;
+}
+
+/* 左侧用户列表 */
+.sidebar-left {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
   display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  align-items: center;
 }
 
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+.sidebar-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-.chat-aside-right {
-  width: 50% !important;
-  background: rgba(248, 249, 250, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  margin: 12px;
-  padding: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+.search-input :deep(.el-input__wrapper) {
+  background: var(--bg-main);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  transition: all 0.2s;
 }
 
-.chat-main {
-  width: 25% !important;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  margin: 12px;
-  padding: 20px;
+.search-input :deep(.el-input__wrapper:hover) {
+  border-color: var(--primary-400);
 }
 
-.search-box {
-  margin-bottom: 20px;
+.search-input :deep(.el-input__wrapper.is-focus) {
+  border-color: var(--primary-600);
+  box-shadow: 0 0 0 3px var(--primary-100);
 }
 
-.user-item, .conversation-item {
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.user-item {
   display: flex;
   align-items: center;
-  padding: 12px;
-  margin: 8px 0;
-  border-radius: 8px;
+  gap: 12px;
+  padding: 10px 12px;
+  margin: 4px 0;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
+  color: var(--text-secondary);
 }
 
-.user-item:hover, .conversation-item:hover {
-  background: rgba(0, 0, 0, 0.05);
+.user-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
-.user-item.active, .conversation-item.active {
-  background: #0245a3;
+.user-item.active {
+  background: var(--primary-600);
   color: white;
+  font-weight: 500;
 }
 
-.conversation-item.deleted {
-  text-decoration: line-through;
-  color: #d32f2f;
+.user-avatar {
+  flex-shrink: 0;
 }
 
 .username {
-  margin-left: 12px;
+  font-size: 14px;
 }
 
-.message-item {
-  margin: 16px 0;
-  padding: 12px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.8);
+/* 中间对话列表 */
+.main-content {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.content-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--glass-bg);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+.content-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-.user-message {
-  background: #e3f2fd;
-}
-
-.assistant-message {
-  background: #f5f5f5;
-}
-
-.message-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: #666;
-}
-
-.message-content {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.no-selection {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  color: #999;
+.content-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
 }
 
 .conversation-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 6px 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-main);
+  border: 1px solid transparent;
+}
+
+.conversation-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-light);
+  transform: translateY(-1px);
+}
+
+.conversation-item.active {
+  background: var(--primary-50);
+  border-color: var(--primary-300);
+  color: var(--primary-700);
+  font-weight: 500;
+}
+
+.conversation-item.deleted {
+  opacity: 0.6;
+  text-decoration: line-through;
+  color: var(--danger-500);
 }
 
 .conv-info {
-  flex-grow: 1;
-  margin-right: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
-.delete-sign {
-  color: #d32f2f;
-  font-weight: bold;
+.conv-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conv-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.delete-badge {
+  color: var(--danger-500);
+  font-weight: 500;
+}
+
+/* 右侧聊天记录 */
+.sidebar-right {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.message-item {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.3s ease;
+  border: 1px solid var(--border-light);
+}
+
+.user-message {
+  background: var(--primary-50);
+  border-color: var(--primary-200);
+}
+
+.assistant-message {
+  background: var(--bg-elevated);
+  border-color: var(--border-medium);
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.role-badge {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.role-badge.user {
+  background: var(--primary-100);
+  color: var(--primary-700);
+}
+
+.role-badge.assistant {
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+}
+
+.time {
+  color: var(--text-tertiary);
+}
+
+.message-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+/* 空状态 */
+.empty-state,
+.empty-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 120px;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.placeholder-icon {
+  font-size: 32px;
+  color: var(--text-tertiary);
+  opacity: 0.5;
+}
+
+.placeholder-content p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* 动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 自定义滚动条 */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-light) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--border-light);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--border-medium);
+}
+
+/* 响应式设计 */
+@media screen and (max-width: 1200px) {
+  .admin-chat-layout {
+    grid-template-columns: 240px 1fr;
+  }
+
+  .sidebar-right {
+    grid-column: 1 / -1;
+    min-height: 300px;
+  }
 }
 
 @media screen and (max-width: 768px) {
-  .chat-aside,
-  .chat-aside-right,
-  .chat-main {
-    width: 100% !important;
-    margin: 6px;
+  .admin-chat-layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
   }
-  
-  .el-container {
-    flex-direction: column;
+
+  .sidebar-left,
+  .main-content,
+  .sidebar-right {
+    min-height: 200px;
   }
+}
+
+/* Element Plus 组件样式覆盖 */
+.message-item :deep(.el-collapse-item__header) {
+  background: transparent;
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+.message-item :deep(.el-collapse-item__content) {
+  background: var(--bg-main);
+  color: var(--text-primary);
+}
+
+/* 暗色模式适配 */
+[data-theme="dark"] .admin-chat-layout {
+  background: var(--bg-main);
+}
+
+[data-theme="dark"] .sidebar-left,
+[data-theme="dark"] .main-content,
+[data-theme="dark"] .sidebar-right {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .user-item:hover,
+[data-theme="dark"] .conversation-item:hover {
+  background: var(--bg-hover);
+}
+
+[data-theme="dark"] .conversation-item.active {
+  background: var(--primary-700);
+  border-color: var(--primary-500);
+  color: white;
+}
+
+[data-theme="dark"] .user-message {
+  background: var(--primary-700);
+  border-color: var(--primary-500);
+  color: white;
+}
+
+[data-theme="dark"] .assistant-message {
+  background: var(--bg-elevated);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .search-input :deep(.el-input__wrapper) {
+  background: var(--bg-elevated);
+}
+
+[data-theme="dark"] .conversation-item {
+  background: var(--bg-elevated);
+}
+
+[data-theme="dark"] .message-content {
+  color: var(--text-primary);
 }
 </style>

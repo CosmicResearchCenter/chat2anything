@@ -306,8 +306,10 @@ export default defineComponent({
   width: auto;
   height: auto;
   max-width: 1000px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
 }
 
 .steps-container {
@@ -329,7 +331,7 @@ export default defineComponent({
 }
 
 .step-title {
-  color: #303133;
+  color: var(--text-primary);
   margin-bottom: 30px;
   text-align: center;
   font-weight: 500;
@@ -343,19 +345,19 @@ export default defineComponent({
 
 .upload-icon {
   font-size: 48px;
-  color: #409EFF;
+  color: var(--primary-500);
   margin-bottom: 10px;
 }
 
 .upload-text {
   font-size: 16px;
-  color: #606266;
+  color: var(--text-primary);
   margin-bottom: 6px;
 }
 
 .upload-tip {
   font-size: 13px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .file-card {
@@ -363,6 +365,8 @@ export default defineComponent({
   max-width: 500px;
   margin: 20px auto;
   transition: all 0.3s;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
 }
 
 .file-info {
@@ -373,7 +377,7 @@ export default defineComponent({
 .file-icon {
   font-size: 28px;
   margin-right: 15px;
-  color: #409EFF;
+  color: var(--primary-500);
 }
 
 .file-details {
@@ -383,12 +387,12 @@ export default defineComponent({
 .file-name {
   margin: 0;
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary);
   word-break: break-all;
 }
 
 .file-size {
-  color: #909399;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -396,7 +400,11 @@ export default defineComponent({
   width: 100%;
   max-width: 700px;
   margin: 20px auto;
-  overflow: hidden; /* 确保内容不溢出卡片 */
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .split-mode-selector {
@@ -420,13 +428,17 @@ export default defineComponent({
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
-  color: #606266;
+  color: var(--text-secondary);
 }
 
 .success-card {
   width: 100%;
   max-width: 500px;
   margin: 20px auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .success-content {
@@ -438,18 +450,18 @@ export default defineComponent({
 
 .success-icon {
   font-size: 60px;
-  color: #67C23A;
+  color: var(--success-500);
   margin-bottom: 20px;
 }
 
 .success-title {
-  color: #303133;
+  color: var(--text-primary);
   font-weight: 500;
   margin-bottom: 10px;
 }
 
 .success-message {
-  color: #606266;
+  color: var(--text-secondary);
   text-align: center;
 }
 
@@ -493,12 +505,12 @@ export default defineComponent({
     padding: 0;
     width: 100%;
   }
-  
+
   .step-title {
     font-size: 18px;
     margin-bottom: 15px;
   }
-  
+
   .file-card, .params-card, .success-card {
     max-width: 100%;
     margin: 10px 0;
@@ -513,17 +525,52 @@ export default defineComponent({
     padding: 10px 0;
   }
 
-  /* 滑块样式优化 */
-  .el-slider {
+  /* 滑块样式优化 - 使用CSS变量支持暗色模式 */
+  :deep(.el-slider) {
     margin-bottom: 15px;
   }
-  
-  .el-slider__runway {
+
+  :deep(.el-slider__runway) {
     width: 100% !important;
+    background-color: var(--border-light) !important;
   }
-  
-  .el-slider__input {
+
+  :deep(.el-slider__runway:hover) {
+    background-color: var(--border-medium) !important;
+  }
+
+  :deep(.el-slider__bar) {
+    background-color: var(--primary-500) !important;
+  }
+
+  :deep(.el-slider__button) {
+    border-color: var(--primary-500) !important;
+  }
+
+  :deep(.el-slider__input) {
     width: 80px !important;
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text-primary) !important;
+  }
+
+  :deep(.el-input__wrapper) {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-light) !important;
+    box-shadow: none !important;
+  }
+
+  :deep(.el-input__wrapper:hover) {
+    border-color: var(--primary-500) !important;
+  }
+
+  :deep(.el-input__wrapper.is-focus) {
+    border-color: var(--primary-500) !important;
+    box-shadow: 0 0 0 2px var(--primary-100) !important;
+  }
+
+  :deep(.el-slider__marks-text) {
+    color: var(--text-secondary) !important;
   }
 
   .param-item {
@@ -533,30 +580,49 @@ export default defineComponent({
   .param-label {
     font-size: 14px;
   }
-  
-  /* 修复模式选择按钮组响应式问题 */
+
+  /* 修复模式选择按钮组响应式问题 - 使用CSS变量支持暗色模式 */
   .mode-group {
     display: flex;
     flex-direction: column;
     width: 100%;
     align-items: center;
   }
-  
+
   .mode-group .el-radio-button {
     margin-bottom: 10px;
     width: 80%;
   }
-  
-  .mode-group .el-radio-button__inner {
+
+  :deep(.el-radio-button__inner) {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text-primary) !important;
     width: 100%;
   }
-  
+
+  :deep(.el-radio-button__inner:hover) {
+    border-color: var(--primary-500) !important;
+    color: var(--primary-500) !important;
+  }
+
+  :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+    background-color: var(--primary-500) !important;
+    border-color: var(--primary-500) !important;
+    color: var(--bg-main) !important;
+    box-shadow: -1px 0 0 0 var(--primary-500) !important;
+  }
+
+  :deep(.el-radio-button__original-radio:focus-visible + .el-radio-button__inner) {
+    box-shadow: 0 0 0 2px var(--primary-100) !important;
+  }
+
   /* 确保步骤操作按钮响应式 */
   .step-actions {
     flex-wrap: wrap;
     margin-top: 15px;
   }
-  
+
   .step-actions .el-button {
     margin: 5px;
   }
@@ -567,35 +633,275 @@ export default defineComponent({
   .upload-icon {
     font-size: 36px;
   }
-  
+
   .upload-text {
     font-size: 14px;
   }
-  
+
   .upload-tip {
     font-size: 12px;
   }
-  
+
   .success-icon {
     font-size: 48px;
   }
-  
-  /* 优化滑块在超小屏幕上的显示 */
-  .el-slider__runway {
+
+  /* 优化滑块在超小屏幕上的显示 - 使用CSS变量支持暗色模式 */
+  :deep(.el-slider__runway) {
     margin: 10px 0;
+    background-color: var(--border-light) !important;
   }
-  
-  .el-slider__button-wrapper {
+
+  :deep(.el-slider__button-wrapper) {
     transform: translateX(-50%);
   }
-  
-  .el-slider__input {
+
+  :deep(.el-slider__input) {
     width: 60px !important;
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text-primary) !important;
   }
-  
+
+  :deep(.el-input__wrapper) {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-light) !important;
+  }
+
+  :deep(.el-input__inner) {
+    color: var(--text-primary) !important;
+  }
+
   /* 调整参数标题大小 */
   .params-section h3 {
     font-size: 16px;
+    color: var(--text-primary);
+  }
+}
+
+/* 深色模式适配 */
+[data-theme="dark"] .knowledge-base-create {
+  background: var(--bg-main);
+}
+
+[data-theme="dark"] .main-card {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .step-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .upload-text {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .upload-tip {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .file-card {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .file-name {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .file-size {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .params-card {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .split-mode-selector h3 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .params-section h3 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .param-label {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .success-card {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .success-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .success-message {
+  color: var(--text-secondary);
+}
+
+/* Element Plus 组件在深色模式下的全局适配 */
+[data-theme="dark"] .el-steps .el-step__title {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .el-steps .el-step__title.is-finish {
+  color: var(--primary-500);
+}
+
+[data-theme="dark"] .el-steps .el-step__title.is-process {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .el-steps .el-step__head.is-finish {
+  color: var(--primary-500);
+  border-color: var(--primary-500);
+}
+
+[data-theme="dark"] .el-steps .el-step__head.is-process {
+  color: var(--primary-500);
+  border-color: var(--primary-500);
+}
+
+[data-theme="dark"] .el-steps .el-step__head.is-wait {
+  color: var(--text-tertiary);
+  border-color: var(--border-light);
+}
+
+/* 深色模式下的上传组件 */
+[data-theme="dark"] .el-upload {
+  background-color: var(--bg-card);
+}
+
+[data-theme="dark"] .el-upload-dragger {
+  background-color: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .el-upload-dragger:hover {
+  border-color: var(--primary-500);
+  background-color: var(--bg-elevated);
+}
+
+/* 深色模式下的按钮 */
+[data-theme="dark"] .el-button--text {
+  color: var(--primary-500);
+}
+
+[data-theme="dark"] .el-button--text:hover {
+  color: var(--primary-400);
+}
+
+/* 深色模式下的分割线 */
+[data-theme="dark"] .el-divider {
+  background-color: var(--border-light);
+}
+
+[data-theme="dark"] .el-divider__text {
+  color: var(--text-secondary);
+  background-color: var(--bg-card);
+}
+
+/* 深色模式下的滑块组件 */
+[data-theme="dark"] .el-slider__runway {
+  background-color: var(--border-light);
+}
+
+[data-theme="dark"] .el-slider__runway:hover {
+  background-color: var(--border-medium);
+}
+
+[data-theme="dark"] .el-slider__bar {
+  background-color: var(--primary-500);
+}
+
+[data-theme="dark"] .el-slider__button {
+  border-color: var(--primary-500);
+  background-color: var(--bg-main);
+}
+
+[data-theme="dark"] .el-slider__marks-text {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .el-input__wrapper {
+  background-color: var(--bg-card);
+  border-color: var(--border-light);
+  box-shadow: none;
+}
+
+[data-theme="dark"] .el-input__wrapper:hover {
+  border-color: var(--primary-500);
+}
+
+[data-theme="dark"] .el-input__wrapper.is-focus {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 2px var(--primary-100);
+}
+
+[data-theme="dark"] .el-input__inner {
+  color: var(--text-primary);
+  background-color: var(--bg-card);
+}
+
+[data-theme="dark"] .el-input__inner::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* 深色模式下的单选按钮组 */
+[data-theme="dark"] .el-radio-button__inner {
+  background-color: var(--bg-card);
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .el-radio-button__inner:hover {
+  border-color: var(--primary-500);
+  color: var(--primary-500);
+}
+
+[data-theme="dark"] .el-radio-button__original-radio:checked + .el-radio-button__inner {
+  background-color: var(--primary-500);
+  border-color: var(--primary-500);
+  color: var(--bg-main);
+}
+
+[data-theme="dark"] .el-radio-button__original-radio:focus-visible + .el-radio-button__inner {
+  box-shadow: 0 0 0 2px var(--primary-100);
+}
+
+/* 深色模式下的步骤条 */
+[data-theme="dark"] .el-steps .el-step__line {
+  background-color: var(--border-light);
+}
+
+[data-theme="dark"] .el-steps .el-step__line-inner {
+  background-color: var(--primary-500);
+}
+
+/* 深色模式下的卡片阴影增强 */
+[data-theme="dark"] .main-card,
+[data-theme="dark"] .params-card,
+[data-theme="dark"] .success-card,
+[data-theme="dark"] .file-card {
+  box-shadow: var(--shadow-sm);
+}
+
+/* 深色模式下的动画适配 */
+[data-theme="dark"] .fade-enter-active,
+[data-theme="dark"] .fade-leave-active {
+  transition: opacity 0.3s;
+}
+
+/* 深色模式下的超小屏幕优化 */
+[data-theme="dark"] @media screen and (max-width: 480px) {
+  .params-section h3 {
+    color: var(--text-primary);
   }
 }
 </style>

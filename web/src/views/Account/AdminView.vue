@@ -1,39 +1,44 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive, watch } from 'vue'
-import type { TabsPaneContext } from 'element-plus'
+import { ref, onMounted, reactive, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getRequest } from '@/utils/http'
 import * as echarts from 'echarts'
+import {
+  User,
+  ChatLineRound,
+  Collection,
+  Cpu,
+  Clock,
+  UserFilled,
+  Refresh,
+  ArrowUp,
+  ArrowDown,
+  Platform,
+  Ticket,
+  Setting,
+  ChatLineSquare,
+  ArrowRight
+} from '@element-plus/icons-vue'
 
-const activeName = ref('users')
-const handleClick = (tab: TabsPaneContext) => {
-  console.log(tab.props.name)
-}
+const router = useRouter()
 
-// 用户数据
-const users = ref([
-  { id: 1, username: 'user1', email: 'user1@example.com', created_at: '2024-01-01' },
-  { id: 2, username: 'user2', email: 'user2@example.com', created_at: '2024-01-02' }
-])
-
-// 对话数据
-const conversations = ref([
-  { id: 1, user_id: 1, title: '对话1', created_at: '2024-01-01', message_count: 10 },
-  { id: 2, user_id: 2, title: '对话2', created_at: '2024-01-02', message_count: 5 }
-])
-
-// 知识库数据
-const knowledgeBases = ref([
-  { id: 1, user_id: 1, name: '知识库1', doc_count: 5, created_at: '2024-01-01' },
-  { id: 2, user_id: 2, name: '知识库2', doc_count: 3, created_at: '2024-01-02' }
-])
-
-// 计算统计数据
+// 统计数据
 const statistics = ref({
   totalUsers: 0,
   totalConversations: 0,
   totalKnowledgeBases: 0,
   activeUsers: 0
+})
+
+// 活跃用户增长率
+const activeUserGrowth = ref(0)
+
+// 系统状态
+const systemStatus = ref({
+  cpuUsage: 0,
+  memoryUsage: 0,
+  diskUsage: 0,
+  status: 'healthy'
 })
 
 // 图表数据
@@ -48,18 +53,7 @@ const chartData = reactive({
   }
 })
 
-// 系统状态
-const systemStatus = ref({
-  cpuUsage: 0,
-  memoryUsage: 0,
-  diskUsage: 0,
-  status: 'healthy' // healthy, warning, critical
-})
-
-// 活跃用户增长率
-const activeUserGrowth = ref(0)
-
-// 定义活动类型接口
+// 活动类型接口
 interface Activity {
   id: number | string;
   type: 'user' | 'conversation' | 'knowledge' | string;
@@ -71,733 +65,1141 @@ interface Activity {
 // 最近活动
 const recentActivities = ref<Activity[]>([])
 
+// 图表实例
+let userChart: echarts.ECharts | null = null
+let conversationChart: echarts.ECharts | null = null
+
+// 快捷入口配置
+const quickAccess = [
+  { title: '模型配置管理', desc: 'LLM/Embedding/Rerank', icon: Platform, path: 'models', color: 'var(--info-500)' },
+  { title: '对话管理', desc: '查看用户对话', icon: ChatLineSquare, path: 'chat', color: 'var(--primary-500)' },
+  { title: '知识库管理', desc: '用户知识库文档', icon: Collection, path: 'base', color: 'var(--purple-500)' },
+  { title: '用户管理', desc: '管理所有用户', icon: Setting, path: 'user', color: 'var(--success-500)' },
+  { title: '邀请码管理', desc: '生成和管理邀请码', icon: Ticket, path: 'invite', color: 'var(--warning-500)' }
+]
+
 // 获取系统信息
 async function fetchSystemInfo() {
-  const baseURL = import.meta.env.VITE_APP_BASE_URL;
-  const data = await getRequest<any>(baseURL + '/v1/api/mark/admin/system_info');
-  if (data && data.code === 200) {
-    const systemInfo = data.data[0];
-    statistics.value.totalUsers = systemInfo.user_count;
-    statistics.value.totalConversations = systemInfo.conversation_count;
-    statistics.value.totalKnowledgeBases = systemInfo.knowledge_base_count;
-    
-    // 获取系统资源使用情况
-    fetchSystemResources();
-    
-    // 获取活跃用户统计
-    fetchActiveUsers();
-    
-    // 初始化图表
-    fetchUserGrowth();
-    fetchConversationTrend();
-    
-    // 获取最近活动
-    fetchRecentActivities();
+  try {
+    const baseURL = import.meta.env.VITE_APP_BASE_URL;
+    const data = await getRequest<any>(baseURL + '/v1/api/mark/admin/system_info');
+    if (data && data.code === 200 && data.data && data.data.length > 0) {
+      const systemInfo = data.data[0];
+      statistics.value.totalUsers = systemInfo.user_count || 0;
+      statistics.value.totalConversations = systemInfo.conversation_count || 0;
+      statistics.value.totalKnowledgeBases = systemInfo.knowledge_base_count || 0;
+
+      // 获取系统资源使用情况
+      await fetchSystemResources();
+
+      // 获取活跃用户统计
+      await fetchActiveUsers();
+
+      // 初始化图表
+      await fetchUserGrowth();
+      await fetchConversationTrend();
+
+      // 获取最近活动
+      await fetchRecentActivities();
+    }
+  } catch (error) {
+    console.error('获取系统信息失败:', error);
   }
 }
 
 // 获取系统资源使用情况
 async function fetchSystemResources() {
-  const baseURL = import.meta.env.VITE_APP_BASE_URL;
-  const data = await getRequest<any>(baseURL + '/v1/api/mark/admin/system_resources');
-  if (data && data.code === 200) {
-    const resources = data.data[0];
-    systemStatus.value = {
-      cpuUsage: resources.cpu_usage,
-      memoryUsage: resources.memory_usage,
-      diskUsage: resources.disk_usage,
-      status: resources.status
-    };
+  try {
+    const baseURL = import.meta.env.VITE_APP_BASE_URL;
+    const data = await getRequest<any>(baseURL + '/v1/api/mark/admin/system_resources');
+    if (data && data.code === 200 && data.data && data.data.length > 0) {
+      const resources = data.data[0];
+      systemStatus.value = {
+        cpuUsage: resources.cpu_usage || 0,
+        memoryUsage: resources.memory_usage || 0,
+        diskUsage: resources.disk_usage || 0,
+        status: resources.status || 'healthy'
+      };
+    }
+  } catch (error) {
+    console.error('获取系统资源失败:', error);
   }
 }
 
 // 获取活跃用户统计
 async function fetchActiveUsers() {
-  const baseURL = import.meta.env.VITE_APP_BASE_URL;
-  const data = await getRequest<any>(baseURL + '/v1/api/mark/admin/active_users');
-  if (data && data.code === 200) {
-    const activeUserData = data.data[0];
-    statistics.value.activeUsers = activeUserData.active_users;
-    activeUserGrowth.value = activeUserData.growth_rate;
+  try {
+    const baseURL = import.meta.env.VITE_APP_BASE_URL;
+    const data = await getRequest<any>(baseURL + '/v1/api/mark/admin/active_users');
+    if (data && data.code === 200 && data.data && data.data.length > 0) {
+      const activeUserData = data.data[0];
+      statistics.value.activeUsers = activeUserData.active_users || 0;
+      activeUserGrowth.value = activeUserData.growth_rate || 0;
+    }
+  } catch (error) {
+    console.error('获取活跃用户失败:', error);
   }
 }
 
 // 获取最近活动
 async function fetchRecentActivities() {
-  const baseURL = import.meta.env.VITE_APP_BASE_URL;
-  const data = await getRequest<any>(baseURL + '/v1/api/mark/admin/recent_activities');
-  if (data && data.code === 200) {
-    recentActivities.value = data.data[0];
+  try {
+    const baseURL = import.meta.env.VITE_APP_BASE_URL;
+    const data = await getRequest<any>(baseURL + '/v1/api/mark/admin/recent_activities');
+    if (data && data.code === 200 && data.data && data.data.length > 0) {
+      recentActivities.value = data.data[0];
+    }
+  } catch (error) {
+    console.error('获取最近活动失败:', error);
   }
 }
 
 // 获取用户增长趋势
 async function fetchUserGrowth() {
-  const baseURL = import.meta.env.VITE_APP_BASE_URL;
-  const data = await getRequest<any>(baseURL + '/v1/api/mark/admin/user_growth');
-  if (data && data.code === 200) {
-    chartData.userGrowth = data.data[0];
-    updateUserChart();
+  try {
+    const baseURL = import.meta.env.VITE_APP_BASE_URL;
+    const data = await getRequest<any>(baseURL + '/v1/api/mark/admin/user_growth');
+    if (data && data.code === 200 && data.data && data.data.length > 0) {
+      chartData.userGrowth = data.data[0];
+      setTimeout(() => updateUserChart(), 100);
+    }
+  } catch (error) {
+    console.error('获取用户增长失败:', error);
   }
 }
 
 // 获取对话量趋势
 async function fetchConversationTrend() {
-  const baseURL = import.meta.env.VITE_APP_BASE_URL;
-  const data = await getRequest<any>(baseURL + '/v1/api/mark/admin/conversation_trend');
-  if (data && data.code === 200) {
-    chartData.conversationTrend = data.data[0];
-    updateConversationChart();
+  try {
+    const baseURL = import.meta.env.VITE_APP_BASE_URL;
+    const data = await getRequest<any>(baseURL + '/v1/api/mark/admin/conversation_trend');
+    if (data && data.code === 200 && data.data && data.data.length > 0) {
+      chartData.conversationTrend = data.data[0];
+      setTimeout(() => updateConversationChart(), 100);
+    }
+  } catch (error) {
+    console.error('获取对话趋势失败:', error);
   }
-}
-
-// 初始化图表
-function initCharts() {
-  setTimeout(() => {
-    updateUserChart();
-    updateConversationChart();
-  }, 100);
 }
 
 // 更新用户图表
 function updateUserChart() {
-  const userChart = echarts.init(document.getElementById('user-chart'));
-  
-  // 用户增长图表
+  const element = document.getElementById('user-chart');
+  if (!element) return;
+
+  // 销毁旧实例
+  if (userChart) {
+    userChart.dispose();
+  }
+
+  userChart = echarts.init(element, document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : null);
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  // 从 CSS 变量获取颜色
+  const getVar = (name: string) => {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  };
+
+  const textColor = getVar('--text-primary');
+  const textSecondary = getVar('--text-secondary');
+  const borderColor = getVar('--border-light');
+  const splitColor = getVar('--border-light');
+  const primaryColor = getVar('--primary-500') || '#3a7afe';
+  const primaryColorLight = isDark ? 'rgba(58, 122, 254, 0.3)' : 'rgba(58, 122, 254, 0.15)';
+  const primaryColorLighter = isDark ? 'rgba(58, 122, 254, 0.1)' : 'rgba(58, 122, 254, 0.05)';
+
   userChart.setOption({
-    tooltip: { trigger: 'axis' },
-    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: { 
-      type: 'category', 
-      data: chartData.userGrowth.labels || ['一月', '二月', '三月', '四月', '五月', '六月', '七月'] 
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: getVar('--bg-card'),
+      borderColor: borderColor,
+      textStyle: { color: textColor }
     },
-    yAxis: { type: 'value' },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: chartData.userGrowth.labels || ['一月', '二月', '三月', '四月', '五月', '六月', '七月'],
+      axisLine: { lineStyle: { color: borderColor } },
+      axisLabel: { color: textSecondary }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: borderColor } },
+      axisLabel: { color: textSecondary },
+      splitLine: { lineStyle: { color: splitColor } }
+    },
     series: [{
       data: chartData.userGrowth.values || [120, 132, 101, 134, 90, 230, 210],
       type: 'line',
       smooth: true,
-      areaStyle: { opacity: 0.3 },
-      color: '#1677ff'
+      areaStyle: {
+        opacity: 0.3,
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: primaryColorLight },
+          { offset: 1, color: primaryColorLighter }
+        ])
+      },
+      lineStyle: { color: primaryColor, width: 3 },
+      itemStyle: { color: primaryColor },
+      symbol: 'circle',
+      symbolSize: 6
     }]
-  });
-  
-  window.addEventListener('resize', () => {
-    userChart.resize();
   });
 }
 
 // 更新对话图表
 function updateConversationChart() {
-  const convChart = echarts.init(document.getElementById('conversation-chart'));
-  
-  // 对话趋势图表
-  convChart.setOption({
-    tooltip: { trigger: 'axis' },
-    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: { 
-      type: 'category', 
-      data: chartData.conversationTrend.labels || ['一月', '二月', '三月', '四月', '五月', '六月', '七月'] 
+  const element = document.getElementById('conversation-chart');
+  if (!element) return;
+
+  // 销毁旧实例
+  if (conversationChart) {
+    conversationChart.dispose();
+  }
+
+  conversationChart = echarts.init(element, document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : null);
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  // 从 CSS 变量获取颜色
+  const getVar = (name: string) => {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  };
+
+  const textColor = getVar('--text-primary');
+  const textSecondary = getVar('--text-secondary');
+  const borderColor = getVar('--border-light');
+  const splitColor = getVar('--border-light');
+  const purpleColor = getVar('--purple-500') || '#722ed1';
+  const purpleColorLight = isDark ? 'rgba(114, 46, 209, 0.3)' : 'rgba(114, 46, 209, 0.15)';
+  const purpleColorLighter = isDark ? 'rgba(114, 46, 209, 0.1)' : 'rgba(114, 46, 209, 0.05)';
+  const bgCard = getVar('--bg-card');
+
+  conversationChart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: bgCard,
+      borderColor: borderColor,
+      textStyle: { color: textColor }
     },
-    yAxis: { type: 'value' },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: chartData.conversationTrend.labels || ['一月', '二月', '三月', '四月', '五月', '六月', '七月'],
+      axisLine: { lineStyle: { color: borderColor } },
+      axisLabel: { color: textSecondary }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: borderColor } },
+      axisLabel: { color: textSecondary },
+      splitLine: { lineStyle: { color: splitColor } }
+    },
     series: [{
       data: chartData.conversationTrend.values || [220, 182, 191, 234, 290, 330, 310],
       type: 'bar',
-      color: '#722ed1'
+      barWidth: '60%',
+      itemStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: purpleColorLight },
+          { offset: 1, color: purpleColorLighter }
+        ]),
+        borderRadius: [4, 4, 0, 0]
+      }
     }]
-  });
-  
-  window.addEventListener('resize', () => {
-    convChart.resize();
   });
 }
 
-onMounted(() => {
-  fetchSystemInfo();
-})
-
-// 搜索关键词
-const searchQuery = ref('')
-
-// 过滤后的数据
-const filteredUsers = computed(() => {
-  return users.value.filter(user => 
-    user.username.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.value.toLowerCase())
-  )
-})
-
-const isDarkMode = ref(false)
-
-const router = useRouter()
-
+// 导航处理
 const navigateTo = (path: string) => {
   router.push(`/admin/${path}`)
 }
 
-// 主题切换时动态切换 ECharts 主题
+// 刷新数据
+const refreshData = () => {
+  fetchSystemInfo()
+}
+
+// 处理窗口大小变化
+const handleResize = () => {
+  setTimeout(() => {
+    if (userChart) userChart.resize()
+    if (conversationChart) conversationChart.resize()
+  }, 100)
+}
+
+// 页面挂载
+onMounted(() => {
+  fetchSystemInfo()
+  window.addEventListener('resize', handleResize)
+})
+
+// 页面卸载前清理
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+  if (userChart) {
+    userChart.dispose()
+    userChart = null
+  }
+  if (conversationChart) {
+    conversationChart.dispose()
+    conversationChart = null
+  }
+})
+
+// 深色模式支持
+const isDarkMode = ref(false)
 watch(
   () => isDarkMode.value,
-  (val) => {
+  (val: boolean) => {
+    document.documentElement.setAttribute('data-theme', val ? 'dark' : 'light')
     setTimeout(() => {
       updateUserChart()
       updateConversationChart()
-    }, 200)
-    document.documentElement.setAttribute('data-theme', val ? 'dark' : 'light')
+    }, 100)
   }
 )
 </script>
 
 <template>
-  <div class="admin-dashboard" :class="{ 'dark-mode': isDarkMode }">
-    <!-- 顶部栏 -->
-    <header class="dashboard-header">
-      <div class="dashboard-title">
-        <div>
-          <h1>AI 管理控制台</h1>
-          <span>智能助手 · 数据洞察 · 高效管理</span>
+  <div class="admin-dashboard">
+    <!-- 页面头部 -->
+    <header class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">管理控制台</h1>
+          <p class="page-subtitle">系统监控 · 数据分析 · 运维管理</p>
         </div>
-      </div>
-      <div class="dashboard-actions">
-        <el-tooltip content="刷新数据" placement="bottom">
-          <el-button size="small" icon="Refresh" circle @click="fetchSystemInfo" />
-        </el-tooltip>
-        <el-switch
-          v-model="isDarkMode"
-          class="theme-switch"
-          active-text="暗色"
-          inactive-text="亮色"
-          inline-prompt
-        />
+        <div class="header-actions">
+          <el-tooltip content="刷新数据" placement="bottom">
+            <el-button
+              type="primary"
+              :icon="Refresh"
+              circle
+              @click="refreshData"
+              class="refresh-btn"
+            />
+          </el-tooltip>
+          <el-switch
+            v-model="isDarkMode"
+            class="theme-switch"
+            active-text="暗色"
+            inactive-text="亮色"
+            inline-prompt
+          />
+        </div>
       </div>
     </header>
 
     <main class="dashboard-main">
-      <!-- 左侧快捷入口栏 -->
-      <aside class="dashboard-sidebar">
-        <h2>管理入口</h2>
-        <nav class="sidebar-access-list">
+      <!-- 快捷入口 - 现代化卡片网格 -->
+      <section class="quick-access-section">
+        <h2 class="section-title">
+          <el-icon><Setting /></el-icon>
+          快速入口
+        </h2>
+        <div class="quick-access-grid">
           <div
-            class="sidebar-access-card"
-            v-for="(item, idx) in [
-                { title: '模型配置管理', desc: '管理所有用户', icon: 'Platform', path: 'models', color: '#13c2c2' },
-              { title: '对话管理', desc: '查看所有用户对话记录', icon: 'ChatLineSquare', path: 'chat', color: '#1677ff' },
-              { title: '知识库管理', desc: '管理用户知识库文档', icon: 'Collection', path: 'base', color: '#722ed1' },
-              { title: '用户管理', desc: '管理所有用户', icon: 'Setting', path: 'user', color: '#13c2c2' },
-              { title: '邀请码管理', desc: '生成和管理邀请码', icon: 'Ticket', path: 'invite', color: '#fa8c16' }
-            ]"
+            v-for="(item, idx) in quickAccess"
             :key="idx"
+            class="access-card"
+            :style="{ '--card-color': item.color }"
             @click="navigateTo(item.path)"
-            :style="{ '--access-color': item.color }"
           >
-            <div class="sidebar-access-icon">
-              <el-icon :size="24"><component :is="item.icon" /></el-icon>
+            <div class="access-icon-wrapper">
+              <el-icon :size="28"><component :is="item.icon" /></el-icon>
             </div>
-            <div class="sidebar-access-content">
-              <span class="sidebar-access-title">{{ item.title }}</span>
-              <span class="sidebar-access-desc">{{ item.desc }}</span>
+            <div class="access-content">
+              <div class="access-title">{{ item.title }}</div>
+              <div class="access-desc">{{ item.desc }}</div>
             </div>
-            <div class="sidebar-access-arrow">
-              <el-icon><ArrowRight /></el-icon>
-            </div>
+            <el-icon class="access-arrow"><ArrowRight /></el-icon>
           </div>
-        </nav>
-      </aside>
+        </div>
+      </section>
 
-      <!-- 右侧主内容 -->
-      <section class="dashboard-content">
-        <!-- 统计卡片 -->
-        <section class="dashboard-stats">
+      <!-- 统计数据卡片 -->
+      <section class="stats-section">
+        <h2 class="section-title">
+          <el-icon><User /></el-icon>
+          核心数据
+        </h2>
+        <div class="stats-grid">
           <div
             class="stat-card"
             v-for="(stat, idx) in [
-              { label: '总用户', value: statistics.totalUsers, icon: 'User', color: '#1677ff' },
-              { label: '活跃用户', value: statistics.activeUsers, icon: 'UserFilled', color: '#52c41a', trend: activeUserGrowth },
-              { label: '总对话', value: statistics.totalConversations, icon: 'ChatLineRound', color: '#722ed1' },
-              { label: '知识库', value: statistics.totalKnowledgeBases, icon: 'Collection', color: '#13c2c2' }
+              { label: '总用户', value: statistics.totalUsers, icon: User, color: '#1677ff' },
+              { label: '活跃用户', value: statistics.activeUsers, icon: UserFilled, color: '#52c41a', trend: activeUserGrowth },
+              { label: '总对话', value: statistics.totalConversations, icon: ChatLineRound, color: '#722ed1' },
+              { label: '知识库', value: statistics.totalKnowledgeBases, icon: Collection, color: '#13c2c2' }
             ]"
             :key="idx"
             :style="{ '--stat-color': stat.color }"
           >
-            <div class="stat-icon">
-              <el-icon :size="28"><component :is="stat.icon" /></el-icon>
+            <div class="stat-icon-wrapper">
+              <el-icon :size="32"><component :is="stat.icon" /></el-icon>
             </div>
-            <div class="stat-info">
+            <div class="stat-details">
               <div class="stat-value">{{ stat.value }}</div>
               <div class="stat-label">{{ stat.label }}</div>
             </div>
             <div class="stat-trend" v-if="stat.trend !== undefined">
-              <el-icon :color="stat.trend > 0 ? '#52c41a' : '#f56c6c'">
-                <component :is="stat.trend > 0 ? 'ArrowUp' : 'ArrowDown'" />
+              <el-icon :color="stat.trend > 0 ? 'var(--success-500)' : 'var(--danger-500)'">
+                <component :is="stat.trend > 0 ? ArrowUp : ArrowDown" />
               </el-icon>
-              <span :style="{ color: stat.trend > 0 ? '#52c41a' : '#f56c6c' }">{{ Math.abs(stat.trend) }}%</span>
+              <span :class="stat.trend > 0 ? 'trend-up' : 'trend-down'">{{ Math.abs(stat.trend) }}%</span>
             </div>
           </div>
-        </section>
-        <!-- 图表区 -->
-        <section class="dashboard-charts">
+        </div>
+      </section>
+
+      <!-- 图表区域 -->
+      <section class="charts-section">
+        <h2 class="section-title">
+          <el-icon><Cpu /></el-icon>
+          数据趋势
+        </h2>
+        <div class="charts-grid">
           <div class="chart-card">
-            <div class="chart-title">
+            <div class="chart-header">
               <el-icon><User /></el-icon>
               <span>用户增长趋势</span>
             </div>
-            <div id="user-chart" class="chart"></div>
+            <div id="user-chart" class="chart-canvas"></div>
           </div>
           <div class="chart-card">
-            <div class="chart-title">
+            <div class="chart-header">
               <el-icon><ChatLineRound /></el-icon>
               <span>对话数量变化</span>
             </div>
-            <div id="conversation-chart" class="chart"></div>
+            <div id="conversation-chart" class="chart-canvas"></div>
           </div>
-        </section>
-        <!-- 系统状态 & 最近活动 -->
-        <section class="dashboard-status-activity">
-          <div class="system-status-card">
-            <div class="card-header">
-              <el-icon><Cpu /></el-icon>
-              <span>系统状态</span>
+        </div>
+      </section>
+
+      <!-- 系统状态与活动 -->
+      <section class="system-section">
+        <div class="system-status-card">
+          <div class="card-header">
+            <el-icon><Cpu /></el-icon>
+            <span>系统资源</span>
+          </div>
+          <div class="resource-list">
+            <div class="resource-item">
+              <div class="resource-info">
+                <span class="resource-name">CPU 使用率</span>
+                <span class="resource-value">{{ systemStatus.cpuUsage }}%</span>
+              </div>
+              <el-progress
+                :percentage="systemStatus.cpuUsage"
+                :color="systemStatus.cpuUsage > 80 ? 'var(--danger-500)' : 'var(--info-500)'"
+                :stroke-width="8"
+                striped
+              />
             </div>
-            <div class="status-list">
-              <div class="status-item">
-                <span>CPU</span>
-                <el-progress :percentage="systemStatus.cpuUsage" :color="systemStatus.cpuUsage > 80 ? '#f56c6c' : '#13c2c2'" />
+            <div class="resource-item">
+              <div class="resource-info">
+                <span class="resource-name">内存使用率</span>
+                <span class="resource-value">{{ systemStatus.memoryUsage }}%</span>
               </div>
-              <div class="status-item">
-                <span>内存</span>
-                <el-progress :percentage="systemStatus.memoryUsage" :color="systemStatus.memoryUsage > 80 ? '#f56c6c' : '#13c2c2'" />
-              </div>
-              <div class="status-item">
-                <span>磁盘</span>
-                <el-progress :percentage="systemStatus.diskUsage" :color="systemStatus.diskUsage > 80 ? '#f56c6c' : '#13c2c2'" />
-              </div>
+              <el-progress
+                :percentage="systemStatus.memoryUsage"
+                :color="systemStatus.memoryUsage > 80 ? 'var(--danger-500)' : 'var(--info-500)'"
+                :stroke-width="8"
+                striped
+              />
             </div>
-            <div class="status-overview">
-              <el-tag :type="systemStatus.status === 'healthy' ? 'success' : systemStatus.status === 'warning' ? 'warning' : 'danger'">
-                {{ systemStatus.status === 'healthy' ? '系统正常' : systemStatus.status === 'warning' ? '系统警告' : '系统异常' }}
-              </el-tag>
+            <div class="resource-item">
+              <div class="resource-info">
+                <span class="resource-name">磁盘使用率</span>
+                <span class="resource-value">{{ systemStatus.diskUsage }}%</span>
+              </div>
+              <el-progress
+                :percentage="systemStatus.diskUsage"
+                :color="systemStatus.diskUsage > 80 ? 'var(--danger-500)' : 'var(--info-500)'"
+                :stroke-width="8"
+                striped
+              />
             </div>
           </div>
-          <div class="recent-activities-card">
-            <div class="card-header">
-              <el-icon><Clock /></el-icon>
-              <span>最近活动</span>
-            </div>
-            <div class="activities-container">
-              <el-timeline>
-                <el-timeline-item
-                  v-for="activity in recentActivities"
-                  :key="activity.id"
-                  :type="activity.type === 'user' ? 'primary' : activity.type === 'conversation' ? 'success' : activity.type === 'knowledge' ? 'warning' : 'info'"
-                  :size="'small'"
-                  :timestamp="activity.time"
-                >
-                  <span class="activity-user">{{ activity.username }}</span>
+          <div class="system-status-badge">
+            <el-tag
+              :type="systemStatus.status === 'healthy' ? 'success' : systemStatus.status === 'warning' ? 'warning' : 'danger'"
+              size="large"
+              effect="dark"
+            >
+              {{ systemStatus.status === 'healthy' ? '🟢 系统正常' : systemStatus.status === 'warning' ? '🟡 系统警告' : '🔴 系统异常' }}
+            </el-tag>
+          </div>
+        </div>
+
+        <div class="recent-activities-card">
+          <div class="card-header">
+            <el-icon><Clock /></el-icon>
+            <span>最近活动</span>
+          </div>
+          <div class="activities-list">
+            <el-timeline v-if="recentActivities.length > 0">
+              <el-timeline-item
+                v-for="activity in recentActivities"
+                :key="activity.id"
+                :type="activity.type === 'user' ? 'primary' : activity.type === 'conversation' ? 'success' : activity.type === 'knowledge' ? 'warning' : 'info'"
+                :size="'large'"
+                :timestamp="activity.time"
+                placement="top"
+              >
+                <div class="activity-item">
+                  <span class="activity-username">{{ activity.username }}</span>
                   <span class="activity-action">{{ activity.action }}</span>
-                </el-timeline-item>
-              </el-timeline>
-            </div>
+                </div>
+              </el-timeline-item>
+            </el-timeline>
+            <el-empty v-else description="暂无活动记录" :image-size="80" />
           </div>
-        </section>
+        </div>
       </section>
     </main>
   </div>
 </template>
 
 <style scoped>
+/* 管理控制台主容器 */
 .admin-dashboard {
-  --bg: #f7faff;
-  --card-bg: #fff;
-  --text: #222;
-  --text-secondary: #888;
-  --border: #e6eaf0;
-  --shadow: 0 4px 24px 0 rgba(22, 119, 255, 0.06);
-  --radius: 18px;
-  background: var(--bg);
-  min-height: 100vh;
-  color: var(--text);
-  transition: background 0.3s, color 0.3s;
-  position: relative;
   width: 100%;
-  overflow-x: hidden;
+  min-height: 100%;
+  background: var(--bg-main);
+  padding: 0;
+  color: var(--text-primary);
 }
-.admin-dashboard.dark-mode {
-  --bg: #10131a;
-  --card-bg: #181c23;
-  --text: #f3f6fa;
-  --text-secondary: #7e8ba3;
-  --border: #23273a;
-  --shadow: 0 4px 24px 0 rgba(22, 119, 255, 0.10);
+
+/* 页面头部 */
+.page-header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
+  padding: 24px 32px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(10px);
 }
-.dashboard-header {
+
+.header-content {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 32px 40px 0 40px;
-  background: transparent;
+  gap: 24px;
   flex-wrap: wrap;
-  gap: 15px;
 }
-.dashboard-title {
-  display: flex;
-  align-items: center;
-  gap: 18px;
+
+.title-section {
+  flex: 1;
+  min-width: 280px;
 }
-.dashboard-title h1 {
-  font-size: clamp(1.5rem, 4vw, 2.1rem);
-  font-weight: 700;
-  margin: 0;
-  color: var(--text);
-  letter-spacing: 1px;
+
+.page-title {
+  font-size: 28px;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+  line-height: 1.3;
 }
-.dashboard-title span {
-  font-size: clamp(0.8rem, 2vw, 1rem);
+
+.page-subtitle {
+  font-size: 14px;
   color: var(--text-secondary);
-  margin-top: 2px;
-  display: block;
+  margin: 0;
+  line-height: 1.5;
 }
-.dashboard-actions {
+
+.header-actions {
   display: flex;
+  gap: 12px;
   align-items: center;
-  gap: 18px;
 }
+
+.refresh-btn {
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-500));
+  border: none;
+  box-shadow: 0 4px 12px rgba(2, 69, 163, 0.25);
+}
+
+.refresh-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(2, 69, 163, 0.35);
+}
+
 .theme-switch {
   margin-left: 8px;
 }
 
-/* 重新设计为可适应的主区域布局 */
+/* 主内容区域 */
 .dashboard-main {
-  display: grid;
-  grid-template-columns: 250px 1fr;
-  gap: 24px;
-  padding: 24px 20px;
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
 }
 
-.dashboard-sidebar {
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border);
-  padding: 24px 0 24px 0;
+/* 通用标题样式 */
+.section-title {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  height: fit-content;
-  min-width: 0; /* 防止溢出 */
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-light);
 }
-.dashboard-sidebar h2 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text);
-  margin: 0 0 18px 32px;
-  letter-spacing: 1px;
+
+.section-title .el-icon {
+  color: var(--primary-600);
 }
-.sidebar-access-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 0 12px;
+
+/* 快捷入口区域 */
+.quick-access-section {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
-.sidebar-access-card {
+
+.quick-access-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.access-card {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: color-mix(in srgb, var(--access-color) 7%, var(--card-bg));
-  border-radius: 10px;
-  padding: 12px 14px;
+  background: color-mix(in srgb, var(--card-color) 7%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--card-color) 20%, var(--border-light));
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
   cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
-  border: 1px solid transparent;
+  transition: all var(--duration-normal) ease;
   position: relative;
+  overflow: hidden;
 }
-.sidebar-access-card:hover {
-  background: color-mix(in srgb, var(--access-color) 18%, var(--card-bg));
-  box-shadow: 0 4px 16px 0 color-mix(in srgb, var(--access-color) 18%, transparent);
-  border-color: var(--access-color);
-  transform: translateY(-2px) scale(1.01);
+
+.access-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--card-color);
+  transform: scaleY(0);
+  transition: transform var(--duration-normal) ease;
 }
-.sidebar-access-icon {
-  background: color-mix(in srgb, var(--access-color) 16%, transparent);
-  color: var(--access-color);
-  border-radius: 8px;
-  width: 38px; height: 38px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.3rem;
-  flex-shrink: 0;
+
+.access-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--card-color) 15%, transparent);
+  border-color: var(--card-color);
 }
-.sidebar-access-content {
-  flex: 1;
+
+.access-card:hover::before {
+  transform: scaleY(1);
+}
+
+.access-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background: color-mix(in srgb, var(--card-color) 15%, transparent);
+  color: var(--card-color);
+  border-radius: 12px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--duration-normal) ease;
+}
+
+.access-card:hover .access-icon-wrapper {
+  background: var(--card-color);
+  color: white;
+  transform: scale(1.05);
+}
+
+.access-content {
+  flex: 1;
   min-width: 0;
 }
-.sidebar-access-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 2px;
+
+.access-title {
+  font-size: 15px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: 4px;
   white-space: nowrap;
-  text-overflow: ellipsis;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
-.sidebar-access-desc {
-  font-size: 0.92rem;
+
+.access-desc {
+  font-size: 12px;
   color: var(--text-secondary);
   white-space: nowrap;
-  text-overflow: ellipsis;
   overflow: hidden;
-}
-.sidebar-access-arrow {
-  color: var(--access-color);
-  margin-left: 6px;
-  font-size: 1.1rem;
+  text-overflow: ellipsis;
 }
 
-/* 主内容区域 */
-.dashboard-content {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-width: 0; /* 防止溢出 */
-  overflow-y: auto;
-  max-height: calc(100vh - 200px); /* 设置最大高度以确保可滚动 */
+.access-arrow {
+  color: var(--card-color);
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all var(--duration-normal) ease;
 }
 
-.dashboard-stats {
+.access-card:hover .access-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* 统计数据区域 */
+.stats-section {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
-  margin-bottom: 8px;
 }
+
 .stat-card {
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  padding: 20px;
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 28px 24px;
-  border: 1px solid var(--border);
+  gap: 14px;
   position: relative;
   overflow: hidden;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition: all var(--duration-normal) ease;
 }
+
 .stat-card::before {
   content: '';
   position: absolute;
-  left: 0; top: 0; right: 0; height: 4px;
-  background: linear-gradient(90deg, var(--stat-color), #fff0 80%);
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--stat-color), transparent);
 }
+
 .stat-card:hover {
-  box-shadow: 0 8px 32px 0 rgba(22,119,255,0.13);
-  transform: translateY(-2px) scale(1.01);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--stat-color);
 }
-.stat-icon {
-  background: color-mix(in srgb, var(--stat-color) 18%, transparent);
+
+.stat-icon-wrapper {
+  width: 52px;
+  height: 52px;
+  background: color-mix(in srgb, var(--stat-color) 12%, transparent);
   color: var(--stat-color);
   border-radius: 12px;
-  width: 54px; height: 54px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
-.stat-info {
+
+.stat-details {
   flex: 1;
-  min-width: 0; /* 防止文本溢出 */
+  min-width: 0;
 }
+
 .stat-value {
-  font-size: clamp(1.5rem, 4vw, 2.1rem);
-  font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin-bottom: 2px;
 }
+
 .stat-label {
-  font-size: clamp(0.8rem, 2vw, 1rem);
+  font-size: 13px;
   color: var(--text-secondary);
-  margin-top: 2px;
 }
+
 .stat-trend {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 1rem;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
 }
-.dashboard-charts {
+
+.trend-up {
+  color: var(--success-500);
+}
+
+.trend-down {
+  color: var(--danger-500);
+}
+
+/* 图表区域 */
+.charts-section {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 16px;
 }
+
 .chart-card {
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 24px 22px 18px 22px;
-  border: 1px solid var(--border);
+  background: var(--bg-main);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  min-width: 0; /* 防止溢出 */
+  gap: 12px;
 }
-.chart-title {
+
+.chart-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
 }
-.chart {
-  height: 260px;
+
+.chart-header .el-icon {
+  color: var(--primary-600);
+}
+
+.chart-canvas {
+  height: 280px;
   width: 100%;
-  max-width: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
 }
-.dashboard-status-activity {
+
+/* 系统状态与活动区域 */
+.system-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 16px;
 }
-.system-status-card, .recent-activities-card {
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border);
-  padding: 24px 22px 18px 22px;
+
+.system-status-card,
+.recent-activities-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
-  min-width: 0; /* 防止溢出 */
+  gap: 16px;
 }
+
 .card-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 12px;
-}
-.status-list {
-  margin-bottom: 18px;
-}
-.status-item {
-  margin-bottom: 14px;
-}
-.status-item span {
-  font-size: 0.98rem;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-  display: block;
-}
-.status-overview {
-  margin-top: 18px;
-  text-align: center;
-}
-.activities-container {
-  max-height: 300px;
-  overflow-y: auto;
-  padding-right: 5px;
-}
-.activity-user {
-  color: var(--text);
-  font-weight: 500;
-}
-.activity-action {
-  color: var(--text-secondary);
-  margin-left: 6px;
+  font-size: 16px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
 }
 
-/* 重新优化响应式断点 */
+.card-header .el-icon {
+  color: var(--primary-600);
+}
+
+.resource-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resource-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resource-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.resource-name {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.resource-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.system-status-badge {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-light);
+}
+
+.activities-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 320px;
+  padding-right: 4px;
+}
+
+.activity-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: var(--bg-main);
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+}
+
+.activity-username {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.activity-action {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* 滚动条美化 */
+.activities-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.activities-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.activities-list::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 3px;
+}
+
+.activities-list::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-400);
+}
+
+/* 响应式设计 */
 @media (max-width: 1200px) {
   .dashboard-main {
-    padding: 20px;
-    grid-template-columns: 1fr;
+    padding: 24px;
   }
-  .dashboard-header {
-    padding: 24px 20px 0;
+
+  .page-header {
+    padding: 20px 24px;
   }
-  .dashboard-sidebar {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
-    padding: 20px;
-  }
-  .dashboard-sidebar h2 {
-    grid-column: 1 / -1;
-    margin: 0 0 10px 0;
-  }
-  .sidebar-access-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
-    padding: 0;
-  }
-  .sidebar-access-card {
-    height: 100%;
-    flex-direction: column;
-    text-align: center;
-    padding: 16px 10px;
-  }
-  .sidebar-access-content {
-    text-align: center;
-    padding: 5px 0;
-  }
-  .sidebar-access-arrow {
-    display: none;
+
+  .quick-access-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 }
 
 @media (max-width: 768px) {
-  .dashboard-stats {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
+  .dashboard-main {
+    padding: 16px;
+    gap: 24px;
   }
+
+  .page-header {
+    padding: 16px 20px;
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
+
+  .quick-access-grid,
+  .stats-grid,
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .system-section {
+    grid-template-columns: 1fr;
+  }
+
   .stat-card {
-    padding: 18px 12px;
-    gap: 12px;
+    padding: 16px;
   }
-  .stat-icon {
-    width: 42px;
-    height: 42px;
+
+  .stat-value {
+    font-size: 20px;
   }
-  .dashboard-charts {
-    grid-template-columns: 1fr;
+
+  .chart-canvas {
+    height: 220px;
   }
-  .chart {
-    height: 200px;
+
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
   }
-  .dashboard-status-activity {
-    grid-template-columns: 1fr;
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 
 @media (max-width: 480px) {
-  .dashboard-header {
-    padding: 18px 15px 0;
-    flex-direction: column;
-    align-items: flex-start;
-  }
   .dashboard-main {
-    padding: 15px;
-    gap: 16px;
+    padding: 12px;
   }
-  .dashboard-stats {
-    grid-template-columns: 1fr;
+
+  .page-header {
+    padding: 12px 16px;
   }
-  .stat-card, .chart-card, .system-status-card, .recent-activities-card {
-    padding: 15px 12px;
+
+  .stat-card,
+  .chart-card,
+  .system-status-card,
+  .recent-activities-card {
+    padding: 16px;
   }
-  .sidebar-access-list {
-    grid-template-columns: 1fr;
+
+  .access-card {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .access-icon-wrapper {
+    width: 40px;
+    height: 40px;
+  }
+
+  .section-title {
+    font-size: 15px;
+    margin-bottom: 12px;
   }
 }
 
-/* 增强触摸设备的用户体验 */
-@media (hover: none) {
-  .sidebar-access-card:active, .stat-card:active {
+/* 深色模式适配 */
+[data-theme="dark"] .page-header {
+  background: rgba(26, 31, 38, 0.95);
+  border-bottom-color: var(--border-light);
+}
+
+[data-theme="dark"] .quick-access-section,
+[data-theme="dark"] .stats-section,
+[data-theme="dark"] .charts-section,
+[data-theme="dark"] .system-status-card,
+[data-theme="dark"] .recent-activities-card {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .access-card {
+  background: color-mix(in srgb, var(--card-color) 10%, var(--bg-card));
+}
+
+[data-theme="dark"] .chart-card {
+  background: var(--bg-main);
+}
+
+[data-theme="dark"] .activity-item {
+  background: var(--bg-elevated);
+}
+
+/* 动画效果 */
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.quick-access-grid .access-card,
+.stats-grid .stat-card,
+.charts-grid .chart-card {
+  animation: cardAppear 0.4s ease forwards;
+}
+
+.quick-access-grid .access-card:nth-child(1) { animation-delay: 0.05s; }
+.quick-access-grid .access-card:nth-child(2) { animation-delay: 0.1s; }
+.quick-access-grid .access-card:nth-child(3) { animation-delay: 0.15s; }
+.quick-access-grid .access-card:nth-child(4) { animation-delay: 0.2s; }
+.quick-access-grid .access-card:nth-child(5) { animation-delay: 0.25s; }
+
+/* 微交互 */
+@media (hover: hover) {
+  .access-card:active,
+  .stat-card:active {
     transform: scale(0.98);
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .access-card,
+  .stat-card,
+  .chart-card,
+  .system-status-card,
+  .recent-activities-card {
+    border-width: 2px;
+  }
+}
+
+/* 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  .access-card,
+  .stat-card,
+  .chart-card,
+  .access-icon-wrapper,
+  .stat-icon-wrapper {
+    animation: none !important;
+    transition: none !important;
   }
 }
 </style>

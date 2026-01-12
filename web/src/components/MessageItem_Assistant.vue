@@ -136,7 +136,7 @@ export default defineComponent({
 });
 </script>
 
-<style>
+<style scoped>
 .msg-box {
   display: flex;
   gap: 16px;
@@ -149,7 +149,7 @@ export default defineComponent({
   height: 45px;
   border-radius: 50%;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border: 2px solid #fff;
+  border: 2px solid var(--bg-card);
   transition: all 0.3s ease;
 }
 
@@ -166,23 +166,23 @@ export default defineComponent({
 }
 
 .msg {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-radius: 4px 18px 18px 18px;
   padding: 16px 20px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 
-    0 4px 24px -1px rgba(0, 0, 0, 0.08),
-    0 2px 8px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border-light);
+  box-shadow:
+    0 4px 24px -1px var(--shadow-sm),
+    0 2px 8px -1px var(--shadow-xs);
   position: relative;
   transition: all 0.3s ease;
 }
 
 .msg:hover {
-  box-shadow: 
-    0 6px 30px -1px rgba(0, 0, 0, 0.12),
-    0 3px 10px -1px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 6px 30px -1px var(--shadow-md),
+    0 3px 10px -1px var(--shadow-sm);
   transform: translateY(-2px);
 }
 
@@ -193,32 +193,32 @@ export default defineComponent({
   top: 20px;
   width: 16px;
   height: 16px;
-  background: #ffffff;
+  background: var(--bg-card);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   transform: rotate(45deg);
-  border-left: 1px solid rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-left: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .think-box {
-  background: rgba(228, 237, 255, 0.9);
+  background: var(--primary-50);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-radius: 16px;
   padding: 16px 20px;
-  border: 1px solid rgba(57, 108, 240, 0.15);
-  box-shadow: 
-    0 4px 24px -1px rgba(57, 108, 240, 0.1),
-    0 2px 8px -1px rgba(57, 108, 240, 0.06);
+  border: 1px solid var(--primary-200);
+  box-shadow:
+    0 4px 24px -1px var(--shadow-primary-sm),
+    0 2px 8px -1px var(--shadow-primary-xs);
   position: relative;
   transition: all 0.3s ease;
 }
 
 .think-box:hover {
-  box-shadow: 
-    0 6px 30px -1px rgba(57, 108, 240, 0.15),
-    0 3px 10px -1px rgba(57, 108, 240, 0.1);
+  box-shadow:
+    0 6px 30px -1px var(--shadow-primary-md),
+    0 3px 10px -1px var(--shadow-primary-sm);
 }
 
 .think-header {
@@ -227,15 +227,15 @@ export default defineComponent({
   gap: 8px;
   padding-bottom: 10px;
   margin-bottom: 10px;
-  border-bottom: 1px dashed rgba(57, 108, 240, 0.3);
-  color: #3f51b5;
+  border-bottom: 1px dashed var(--primary-300);
+  color: var(--primary-700);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .think-header:hover {
-  color: #0369e1;
+  color: var(--primary-600);
 }
 
 .toggle-icon {
@@ -248,11 +248,11 @@ export default defineComponent({
 }
 
 .think-content {
-  color: #263238;
+  color: var(--text-primary);
   font-size: 0.95em;
   font-family: 'Courier New', monospace;
   padding: 10px;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--bg-card);
   border-radius: 8px;
 }
 
@@ -261,21 +261,21 @@ export default defineComponent({
   margin: 16px 60px;
   padding: 15px;
   border-radius: 16px;
-  background: rgba(245, 247, 250, 0.9);
+  background: var(--bg-main);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 
-    0 4px 20px -1px rgba(0, 0, 0, 0.08),
-    0 2px 8px -1px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-light);
+  box-shadow:
+    0 4px 20px -1px var(--shadow-sm),
+    0 2px 8px -1px var(--shadow-xs);
   transition: all 0.3s ease;
   animation: fadeIn 0.5s ease-in-out;
 }
 
 .retriever-box:hover {
-  box-shadow: 
-    0 6px 26px -1px rgba(0, 0, 0, 0.12),
-    0 3px 10px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 6px 26px -1px var(--shadow-md),
+    0 3px 10px -1px var(--shadow-sm);
 }
 
 @keyframes fadeIn {
@@ -288,19 +288,19 @@ export default defineComponent({
   align-items: center;
   gap: 10px;
   padding: 8px 5px;
-  color: #444;
+  color: var(--text-secondary);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .retriever-header:hover {
-  color: #0369e1;
+  color: var(--primary-600);
 }
 
 .retriever-header .el-icon {
   font-size: 18px;
-  color: #1a73e8;
+  color: var(--primary-500);
 }
 
 .retriever-content {
@@ -316,26 +316,26 @@ export default defineComponent({
   padding: 12px 16px;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
-  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-primary);
+  background: var(--bg-card);
   border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-light);
   margin-bottom: 8px;
   transition: all 0.3s ease;
 }
 
 .retriever-content :deep(.el-collapse-item__header:hover) {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--bg-elevated);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-xs);
 }
 
 .retriever-content :deep(.el-collapse-item__content) {
   padding: 16px;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--bg-card);
   border-radius: 8px;
   margin-bottom: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-light);
 }
 
 .doc-content {
@@ -344,6 +344,7 @@ export default defineComponent({
   padding-right: 10px;
   font-size: 14px;
   line-height: 1.6;
+  color: var(--text-primary);
 }
 
 /* 美化滚动条 */
@@ -352,35 +353,36 @@ export default defineComponent({
 }
 
 .doc-content::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--border-light);
   border-radius: 3px;
 }
 
 .doc-content::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--border-medium);
   border-radius: 3px;
 }
 
 .doc-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--border-dark);
 }
 
 /* 代码块样式美化 */
 .msg :deep(code) {
-  background-color: rgba(0, 0, 0, 0.04);
+  background-color: var(--code-bg);
   border-radius: 4px;
   padding: 2px 6px;
   font-family: 'Courier New', monospace;
   font-size: 0.9em;
+  color: var(--code-text);
 }
 
 .msg :deep(pre) {
-  background-color: #f6f8fa;
+  background-color: var(--code-bg);
   border-radius: 8px;
   padding: 12px 16px;
   margin: 10px 0;
   overflow-x: auto;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-light);
 }
 
 .msg :deep(pre code) {
@@ -397,17 +399,95 @@ export default defineComponent({
 
 .msg :deep(th),
 .msg :deep(td) {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-light);
   padding: 8px 12px;
   text-align: left;
 }
 
 .msg :deep(th) {
-  background-color: #f2f2f2;
+  background-color: var(--bg-elevated);
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .msg :deep(tr:nth-child(even)) {
-  background-color: #f9f9f9;
+  background-color: var(--bg-main);
+}
+
+/* 暗色模式适配 */
+[data-theme="dark"] .avatar {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: var(--bg-elevated);
+}
+
+[data-theme="dark"] .msg::before {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .think-box {
+  background: var(--primary-900);
+  border-color: var(--primary-700);
+}
+
+[data-theme="dark"] .think-header {
+  color: var(--primary-300);
+}
+
+[data-theme="dark"] .think-header:hover {
+  color: var(--primary-400);
+}
+
+[data-theme="dark"] .think-content {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .retriever-box {
+  background: var(--bg-elevated);
+}
+
+[data-theme="dark"] .retriever-header {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .retriever-header:hover {
+  color: var(--primary-400);
+}
+
+[data-theme="dark"] .retriever-header .el-icon {
+  color: var(--primary-400);
+}
+
+[data-theme="dark"] .retriever-content :deep(.el-collapse-item__header) {
+  background: var(--bg-elevated);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .retriever-content :deep(.el-collapse-item__header:hover) {
+  background: var(--bg-hover);
+}
+
+[data-theme="dark"] .retriever-content :deep(.el-collapse-item__content) {
+  background: var(--bg-elevated);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .msg :deep(code) {
+  background-color: var(--code-bg-dark);
+  color: var(--code-text-dark);
+}
+
+[data-theme="dark"] .msg :deep(pre) {
+  background-color: var(--code-bg-dark);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .msg :deep(th) {
+  background-color: var(--bg-elevated);
+}
+
+[data-theme="dark"] .msg :deep(tr:nth-child(even)) {
+  background-color: var(--bg-main);
 }
 </style>

@@ -12,7 +12,7 @@
           <div class="feature-list">
             <div class="feature-item">
               <div class="feature-icon">
-                <i class="el-icon-chat-dot-round"></i>
+                <el-icon><ChatDotRound /></el-icon>
               </div>
               <div class="feature-text">
                 <h3>精准语义检索</h3>
@@ -21,7 +21,7 @@
             </div>
             <div class="feature-item">
               <div class="feature-icon">
-                <i class="el-icon-files"></i>
+                <el-icon><Document /></el-icon>
               </div>
               <div class="feature-text">
                 <h3>全格式支持</h3>
@@ -30,7 +30,7 @@
             </div>
             <div class="feature-item">
               <div class="feature-icon">
-                <i class="el-icon-cpu"></i>
+                <el-icon><Cpu /></el-icon>
               </div>
               <div class="feature-text">
                 <h3>情境化交互</h3>
@@ -51,7 +51,7 @@
       </div>
     </div>
 
-    <!-- 右侧登录区域 - 修改为浮动盒子 -->
+    <!-- 右侧登录区域 -->
     <div class="auth-section">
       <div class="login-box">
         <!-- 欢迎信息 -->
@@ -64,11 +64,11 @@
           <!-- 表单切换 -->
           <div class="form-tabs">
             <div :class="['tab-item', { active: !isRegister }]" @click="switchToLogin">
-              <i class="el-icon-user"></i>
+              <el-icon><User /></el-icon>
               <span>登录</span>
             </div>
             <div :class="['tab-item', { active: isRegister }]" @click="switchToRegister">
-              <i class="el-icon-plus"></i>
+              <el-icon><Plus /></el-icon>
               <span>注册</span>
             </div>
           </div>
@@ -178,7 +178,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { User, Lock, Key, Message, Ticket } from '@element-plus/icons-vue'
+import { User, Lock, Key, Message, Ticket, ChatDotRound, Document, Cpu, Plus } from '@element-plus/icons-vue'
 import { login, signup, signupAdmin } from '@/utils/http';
 
 const username = ref('');
@@ -468,16 +468,16 @@ onMounted(() => {
   display: flex;
   min-height: 100vh;
   width: 100%;
-  background: #f8fafc;
+  background: var(--bg-main);
   position: relative;
   overflow: hidden;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-family);
 }
 
 /* 左侧品牌区域 */
 .brand-section {
   flex: 1;
-  background: linear-gradient(135deg, #0c2d48 0%, #1a4f7a 100%);
+  background: linear-gradient(135deg, var(--primary-900) 0%, var(--primary-700) 100%);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -493,7 +493,6 @@ onMounted(() => {
   z-index: 2;
   max-width: 600px;
   margin: 0 0 0 12.5%;
-  /* 从居中改为靠左显示，左边距为10% */
 }
 
 .logo-container {
@@ -503,7 +502,7 @@ onMounted(() => {
 .brand-logo {
   font-size: 2.5rem;
   font-weight: 700;
-  background: linear-gradient(90deg, #ffffff, #88c0ff);
+  background: linear-gradient(90deg, #ffffff, var(--primary-300));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -525,7 +524,7 @@ onMounted(() => {
   font-size: 1.1rem;
   margin-bottom: 2.5rem;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.85);
   max-width: 90%;
 }
 
@@ -549,8 +548,9 @@ onMounted(() => {
   justify-content: center;
   margin-right: 1rem;
   font-size: 24px;
-  color: #88c0ff;
+  color: var(--primary-300);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .feature-text h3 {
@@ -562,10 +562,10 @@ onMounted(() => {
 .feature-text p {
   margin: 0;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.75);
 }
 
-/* 科技感背景元素 - 调整位置到左侧 */
+/* 科技感背景元素 */
 .tech-background {
   position: absolute;
   width: 100%;
@@ -578,7 +578,7 @@ onMounted(() => {
 
 .tech-line {
   position: absolute;
-  background: linear-gradient(90deg, rgba(52, 152, 219, 0.05), rgba(52, 152, 219, 0.2));
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.15));
   height: 2px;
   width: 100%;
   transform-origin: left;
@@ -596,7 +596,7 @@ onMounted(() => {
 
 .tech-circle {
   position: absolute;
-  border: 1px solid rgba(52, 152, 219, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
 }
 
@@ -631,7 +631,7 @@ onMounted(() => {
   opacity: 0.5;
 }
 
-/* 右侧登录区域 - 修改为浮动盒子 */
+/* 右侧登录区域 */
 .auth-section {
   width: 450px;
   display: flex;
@@ -650,23 +650,19 @@ onMounted(() => {
   width: 100%;
   max-width: 380px;
   padding: 2.5rem;
-  background: rgba(255, 255, 255, 0.98);
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15),
-    0 5px 15px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(220, 230, 240, 0.5);
-  backdrop-filter: blur(10px);
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(20px);
   transform: translateY(0);
-  transition: all 0.3s ease;
+  transition: all var(--duration-normal) ease;
   animation: floatIn 0.6s ease-out forwards;
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border-light);
 }
 
 .login-box:hover {
   transform: translateY(-5px);
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.18),
-    0 10px 20px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(220, 230, 240, 0.6);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.18), var(--shadow-xl);
 }
 
 @keyframes floatIn {
@@ -674,7 +670,6 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(20px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -688,18 +683,18 @@ onMounted(() => {
 
 .welcome-text h2 {
   font-size: 1.5rem;
-  color: #2c3e50;
+  color: var(--text-primary);
   margin: 0;
   margin-bottom: 8px;
   font-weight: 600;
-  background: linear-gradient(135deg, #3498db, #2c3e50);
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-800));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .welcome-text p {
-  color: #7f8c8d;
+  color: var(--text-secondary);
   margin: 0;
   font-size: 0.9rem;
 }
@@ -707,11 +702,12 @@ onMounted(() => {
 /* 表单样式优化 */
 .form-tabs {
   display: flex;
-  background: #f5f8fa;
-  border-radius: 12px;
+  background: var(--bg-main);
+  border-radius: var(--radius-md);
   overflow: hidden;
   margin-bottom: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .tab-item {
@@ -719,25 +715,31 @@ onMounted(() => {
   padding: 12px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  color: #7f8c8d;
+  transition: all var(--duration-normal) ease;
+  color: var(--text-secondary);
   font-weight: 500;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
+  gap: 4px;
 }
 
-.tab-item i {
-  margin-bottom: 5px;
+.tab-item .el-icon {
   font-size: 18px;
+  transition: all var(--duration-normal) ease;
 }
 
 .tab-item.active {
-  color: #3498db;
-  background: #fff;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  color: var(--primary-600);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-item.active .el-icon {
+  color: var(--primary-600);
+  filter: drop-shadow(0 0 8px var(--primary-300));
 }
 
 .tab-item.active:after {
@@ -747,7 +749,12 @@ onMounted(() => {
   left: 0;
   width: 100%;
   height: 3px;
-  background: linear-gradient(90deg, #3498db, #2980b9);
+  background: linear-gradient(90deg, var(--primary-600), var(--primary-500));
+}
+
+.tab-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .form-container {
@@ -773,12 +780,12 @@ onMounted(() => {
 .form-group {
   position: relative;
   margin-bottom: 20px;
-  transition: all 0.3s ease;
+  transition: all var(--duration-normal) ease;
 }
 
 .form-group.animated {
   transform: translateY(0);
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition: transform var(--duration-normal) ease, opacity var(--duration-normal) ease;
   opacity: 1;
 }
 
@@ -786,56 +793,69 @@ onMounted(() => {
   transform: translateY(-5px);
 }
 
-.input-field {
-  --el-input-bg-color: #fff !important;
-  --el-input-border-color: #e0e6ed !important;
-  --el-input-hover-border-color: #3498db !important;
-  --el-input-focus-border-color: #3498db !important;
+.input-field :deep(.el-input__wrapper) {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-light) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 12px 16px !important;
+  transition: all var(--duration-normal) ease !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
-.input-field :deep(.el-input__wrapper) {
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
-  border-radius: 8px;
-  padding: 10px 15px;
-  transition: all 0.3s ease;
+.input-field :deep(.el-input__wrapper:hover) {
+  border-color: var(--primary-400) !important;
+  background: var(--bg-hover) !important;
 }
 
 .input-field :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 6px 15px rgba(52, 152, 219, 0.2) !important;
+  border-color: var(--primary-600) !important;
+  box-shadow: 0 0 0 3px var(--primary-100), var(--shadow-md) !important;
+  background: var(--bg-card) !important;
 }
 
 .input-field :deep(.el-input__inner) {
-  color: #333;
+  color: var(--text-primary) !important;
   height: 24px;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .input-field :deep(.el-input__inner::placeholder) {
-  color: #95a5a6;
+  color: var(--text-tertiary) !important;
+}
+
+.input-field :deep(.el-input__prefix) {
+  color: var(--primary-600) !important;
 }
 
 .submit-button {
   height: 48px;
   font-size: 16px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-500));
   border: none;
-  transition: all 0.3s ease;
+  transition: all var(--duration-normal) ease;
   width: 100%;
   margin-top: 5px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(2, 69, 163, 0.25);
 }
 
 .submit-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+  box-shadow: 0 6px 20px rgba(2, 69, 163, 0.35);
 }
 
 .submit-button:active:not(:disabled) {
   transform: translateY(0);
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .remember-me {
@@ -847,23 +867,25 @@ onMounted(() => {
 }
 
 .forgot-password {
-  color: #3498db;
+  color: var(--primary-600);
   text-decoration: none;
   font-size: 13px;
-  transition: all 0.2s ease;
+  transition: all var(--duration-fast) ease;
+  font-weight: 500;
 }
 
 .forgot-password:hover {
-  color: #2980b9;
+  color: var(--primary-700);
   text-decoration: underline;
 }
 
 .form-error {
-  color: #e74c3c;
+  color: var(--danger-500);
   font-size: 12px;
   margin-top: 5px;
   display: block;
   animation: fadeIn 0.3s ease;
+  font-weight: 500;
 }
 
 @keyframes fadeIn {
@@ -871,7 +893,6 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(20px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -883,12 +904,10 @@ onMounted(() => {
     transform: scale(1);
     opacity: 0.2;
   }
-
   50% {
     transform: scale(1.05);
     opacity: 0.3;
   }
-
   100% {
     transform: scale(1);
     opacity: 0.2;
@@ -899,11 +918,9 @@ onMounted(() => {
   0% {
     transform: translateX(-100%) scaleX(1);
   }
-
   50% {
     transform: translateX(0%) scaleX(1.5);
   }
-
   100% {
     transform: translateX(100%) scaleX(1);
   }
@@ -930,14 +947,61 @@ onMounted(() => {
 }
 
 .admin-register-toggle a {
-  color: #3498db;
+  color: var(--primary-600);
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all var(--duration-fast) ease;
+  font-weight: 500;
 }
 
 .admin-register-toggle a:hover {
-  color: #2980b9;
+  color: var(--primary-700);
   text-decoration: underline;
+}
+
+/* 深色模式适配 */
+[data-theme="dark"] .brand-section {
+  background: linear-gradient(135deg, var(--primary-950) 0%, var(--primary-900) 100%);
+}
+
+[data-theme="dark"] .feature-icon {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--primary-300);
+}
+
+[data-theme="dark"] .tech-line {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.08));
+}
+
+[data-theme="dark"] .tech-circle {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .tech-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+}
+
+[data-theme="dark"] .login-box {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .form-tabs {
+  background: var(--bg-elevated);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .tab-item.active {
+  background: var(--bg-card);
+}
+
+[data-theme="dark"] .welcome-text h2 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .welcome-text p {
+  color: var(--text-secondary);
 }
 
 /* 响应式设计 */
@@ -952,20 +1016,25 @@ onMounted(() => {
     min-width: auto;
   }
 
+  .brand-content {
+    margin: 0;
+  }
+
   .auth-section {
     width: 100%;
     min-height: 500px;
     padding: 2rem;
     margin-top: -50px;
-    /* 创建一个重叠效果 */
+    position: relative;
+    right: auto;
+    top: auto;
+    transform: none;
   }
 
   .login-box {
     max-width: 450px;
     margin: 0 auto;
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1),
-      0 5px 15px rgba(0, 0, 0, 0.08),
-      0 0 0 1px rgba(220, 230, 240, 0.5);
+    box-shadow: var(--shadow-xl);
   }
 }
 
@@ -993,14 +1062,55 @@ onMounted(() => {
   .brand-logo {
     font-size: 2rem;
   }
-}
-</style>
 
-<script lang="ts">
-// 为TypeScript增加全局类型声明
-declare global {
-  interface Window {
-    particlesJS: any;
+  .feature-list {
+    margin-top: 1.5rem;
+  }
+
+  .feature-item {
+    margin-bottom: 1rem;
+  }
+
+  .feature-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .feature-text h3 {
+    font-size: 1rem;
+  }
+
+  .feature-text p {
+    font-size: 0.85rem;
   }
 }
-</script>
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .login-box {
+    border-width: 2px;
+  }
+
+  .tab-item.active {
+    border: 2px solid var(--primary-600);
+  }
+}
+
+/* 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  .login-box,
+  .form-panel,
+  .form-group,
+  .tab-item,
+  .submit-button {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .tech-line,
+  .tech-circle {
+    animation: none !important;
+  }
+}
+</style>

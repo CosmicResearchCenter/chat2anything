@@ -212,6 +212,70 @@ const currentConversationId = ref<any>('');
 const chatContent = ref<HTMLElement | null>(null);
 const loading = ref<boolean>(false);
 
+type RetrievedDoc = {
+  content: string
+  knowledge_doc_name?: string
+  knowledgeDocName?: string
+  doc_name?: string
+  title?: string
+}
+
+type ConversationMessage = {
+  id?: number | string
+  query: string
+  answer: string
+  retriever_docs?: RetrievedDoc[]
+  retrieved_docs?: RetrievedDoc[]
+  retrieverDocs?: RetrievedDoc[]
+  showThink?: boolean
+  showDocs?: boolean
+  current_knowledge_baseid?: string
+}
+
+function normalizeRetrievedDocs(raw: any): RetrievedDoc[] {
+  if (!raw) return []
+  if (Array.isArray(raw)) return raw
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+function normalizeMessages(rawList: any[]): ConversationMessage[] {
+  if (!Array.isArray(rawList)) return []
+  return rawList.map((m) => {
+    const docs =
+      normalizeRetrievedDocs(m?.retriever_docs) ||
+      normalizeRetrievedDocs(m?.retrieved_docs) ||
+      normalizeRetrievedDocs(m?.retrieverDocs)
+
+    return {
+      ...m,
+      retriever_docs: docs,
+      showThink: Boolean(m?.showThink),
+      showDocs: Boolean(m?.showDocs)
+    } as ConversationMessage
+  })
+}
+
+async function refreshConversationMessages(conversationId: string) {
+  if (!conversationId) return
+  const baseURL = import.meta.env.VITE_APP_BASE_URL
+  const data = await getRequest<any>(`${baseURL}/v1/api/mark/chat/chat-history/${conversationId}`)
+  const normalized = normalizeMessages(data.data || [])
+  conversionMessage.value = normalized
+
+  const lastMsg = normalized[normalized.length - 1]
+  if (lastMsg?.current_knowledge_baseid) {
+    choosedKnowledgeBaseId.value = lastMsg.current_knowledge_baseid
+  }
+}
+
 // Helper to parse message content (Thinking vs Answer)
 function parseMessageContent(message: string) {
   let hasThink = false;
@@ -309,10 +373,13 @@ async function sendMessage() {
   }
 
   loading.value = true;
-  let chatItemUser: any = {
+  let chatItemUser: ConversationMessage = {
     id: Date.now(),
     query: tempValue,
     answer: '',
+    retriever_docs: [],
+    showThink: false,
+    showDocs: false
   };
   
   conversionMessage.value.push(chatItemUser);
@@ -357,6 +424,10 @@ async function sendMessage() {
       conversionMessage.value[lastMsgIndex].answer = resultText;
       scrollToBottom();
     }
+
+    // 流式返回阶段通常只包含 answer；参考文档往往在服务端落库后才能通过 history 拿到
+    // 这里在流结束后刷新一次当前会话消息，确保 retriever_docs 能渲染出来
+    await refreshConversationMessages(currentConversationId.value.toString())
 
   } catch (error: any) {
     console.error(error);
@@ -406,15 +477,8 @@ async function handleItemClick(conversation_id: string) {
   if (currentConversationId.value === conversation_id && conversionMessage.value.length > 0) return;
   
   currentConversationId.value = conversation_id;
-  const baseURL = import.meta.env.VITE_APP_BASE_URL;
-  
-  const data = await getRequest<any>(baseURL+'/v1/api/mark/chat/chat-history/' + conversation_id);
-  conversionMessage.value = data.data || [];
 
-  const lastMsg = data.data[data.data.length - 1];
-  if (lastMsg) {
-    choosedKnowledgeBaseId.value = lastMsg.current_knowledge_baseid || '';
-  }
+  await refreshConversationMessages(conversation_id);
 
   scrollToBottom();
 }
@@ -495,14 +559,9 @@ onMounted(() => {
   display: flex;
   height: 100%;
   width: 100%;
-  background: #ffffff;
-  /* position: absolute; */ /* Removed absolute positioning to prevent overlap with App navbar */
-  /* top: 0; */
-  /* left: 0; */
-  /* right: 0; */
-  /* bottom: 0; */
+  background: var(--bg-main);
   overflow: hidden;
-  position: relative; /* Ensure it stays within parent flow */
+  position: relative;
 }
 
 /* Main Area */
@@ -511,7 +570,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   position: relative;
-  background: #f7f9fb;
+  background: var(--bg-main);
 }
 
 .chat-navbar {
@@ -520,8 +579,8 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  background: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid var(--border-light);
+  background: var(--glass-bg);
   backdrop-filter: blur(8px);
   z-index: 5;
 }
@@ -541,33 +600,33 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   margin: 0;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .kb-select-btn {
-  background: #ffffff;
-  border: 1px solid rgba(0,0,0,0.08);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   padding: 8px 16px;
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #555;
+  color: var(--text-secondary);
   transition: all 0.2s;
   cursor: pointer;
 }
 
 .kb-select-btn:hover {
-  background: #f9f9f9;
-  border-color: rgba(0,0,0,0.15);
-  color: #333;
+  background: var(--bg-hover);
+  border-color: var(--border-medium);
+  color: var(--text-primary);
 }
 
 .kb-select-btn.active {
-   background: #e6f0ff;
-   border-color: #3a7afe;
-   color: #0256d0;
+   background: var(--primary-100);
+   border-color: var(--primary-500);
+   color: var(--primary-700);
 }
 
 /* Messages */
@@ -578,6 +637,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center; /* Center content horizontally */
+  background: var(--bg-main);
 }
 
 .messages-wrapper > * {
@@ -597,13 +657,14 @@ onMounted(() => {
 .logo-circle {
   width: 80px;
   height: 80px;
-  background: white;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-md);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 24px;
+  border: 1px solid var(--border-light);
 }
 
 .logo-emoji {
@@ -612,8 +673,9 @@ onMounted(() => {
 
 .empty-state h3 {
   font-size: 24px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 40px;
+  font-weight: 600;
 }
 
 .suggestion-grid {
@@ -625,8 +687,8 @@ onMounted(() => {
 }
 
 .suggestion-card {
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 20px;
   cursor: pointer;
@@ -635,13 +697,13 @@ onMounted(() => {
   flex-direction: column;
   gap: 12px;
   text-align: left;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  box-shadow: var(--shadow-sm);
 }
 
 .suggestion-card:hover {
-  border-color: #3a7afe;
+  border-color: var(--primary-500);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(58, 122, 254, 0.1);
+  box-shadow: 0 4px 12px var(--primary-100);
 }
 
 .card-icon {
@@ -650,7 +712,7 @@ onMounted(() => {
 
 .card-text {
   font-size: 15px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -683,7 +745,7 @@ onMounted(() => {
 }
 
 .user-bubble {
-  background: #3a7afe; /* Primary Blue for User */
+  background: var(--primary-600);
   color: white;
   padding: 12px 18px;
   border-radius: 18px 18px 2px 18px; /* Classic bubble shape */
@@ -742,15 +804,15 @@ onMounted(() => {
   background: transparent;
   font-family: inherit;
   font-size: 15px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 /* Think Section */
 .think-section {
   margin-bottom: 12px;
   border-radius: 8px;
-  background: #f0f4ff;
-  border: 1px solid rgba(58, 122, 254, 0.1);
+  background: var(--primary-50);
+  border: 1px solid var(--primary-200);
   overflow: hidden;
 }
 
@@ -760,34 +822,39 @@ onMounted(() => {
   gap: 8px;
   padding: 8px 12px;
   cursor: pointer;
-  color: #3a7afe;
+  color: var(--primary-600);
   font-size: 13px;
   font-weight: 500;
-  background: rgba(58, 122, 254, 0.05);
+  background: var(--primary-100);
   transition: background 0.2s;
 }
 
 .think-header:hover {
-  background: rgba(58, 122, 254, 0.1);
+  background: var(--primary-200);
 }
 
 .think-content {
   padding: 12px;
-  background: rgba(255,255,255,0.5);
+  background: var(--bg-card);
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .think-content :deep(.github-markdown-body) {
   font-family: 'Consolas', 'Monaco', monospace;
-  color: #666;
+  color: var(--text-secondary);
   background: transparent;
 }
 
 /* Sources Section */
 .sources-section {
-  margin-left: 8px;
-  max-width: 600px;
+  width: 100%;
+  max-width: 800px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-xs);
 }
 
 .sources-header {
@@ -795,23 +862,46 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   font-weight: 500;
   cursor: pointer;
-  padding: 6px 0;
+  padding: 8px 6px;
+  border-radius: 10px;
   transition: color 0.2s;
 }
 
 .sources-header:hover {
-  color: #3a7afe;
+  color: var(--primary-600);
+  background: var(--bg-hover);
 }
 
 .sources-content {
   margin-top: 8px;
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-elevated);
+}
+
+.sources-content :deep(.el-collapse) {
+  border: none;
+}
+
+.sources-content :deep(.el-collapse-item__header) {
+  background: transparent;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-light);
+  padding: 10px 12px;
+}
+
+.sources-content :deep(.el-collapse-item__wrap) {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.sources-content :deep(.el-collapse-item__content) {
+  padding: 10px 12px;
+  color: var(--text-secondary);
+  background: transparent;
 }
 
 .toggle-icon {
@@ -840,7 +930,7 @@ onMounted(() => {
 .ai-avatar {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #0245a3 0%, #0369e1 100%);
+  background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-500) 100%);
   border-radius: 8px;
   color: white;
   display: flex;
@@ -850,7 +940,13 @@ onMounted(() => {
   font-size: 13px;
   flex-shrink: 0;
   margin-top: 0;
-  box-shadow: 0 4px 10px rgba(3, 105, 225, 0.2);
+  box-shadow: var(--shadow-primary-sm);
+}
+
+/* 暗色模式适配 */
+[data-theme="dark"] .ai-avatar {
+  background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-600) 100%);
+  box-shadow: 0 4px 10px rgba(3, 105, 225, 0.3);
 }
 
 /* Input Area */
@@ -860,17 +956,17 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 0 24px 24px 24px;
-  background: linear-gradient(to bottom, rgba(247,249,251,0), #f7f9fb 30%);
+  background: linear-gradient(to bottom, transparent, var(--bg-main) 30%);
 }
 
 .input-wrapper {
   width: 100%;
   max-width: 800px;
   position: relative;
-  background: #fff;
-  border: 1px solid rgba(0,0,0,0.08); /* Lighter border */
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -878,7 +974,7 @@ onMounted(() => {
 }
 
 .input-wrapper:focus-within {
-  border-color: #3a7afe;
+  border-color: var(--primary-600);
   box-shadow: 0 4px 24px rgba(58, 122, 254, 0.12);
   transform: translateY(-2px);
 }
@@ -891,7 +987,7 @@ onMounted(() => {
   resize: none;
   font-family: inherit;
   font-size: 15px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .input-actions {
@@ -911,7 +1007,7 @@ onMounted(() => {
 
 .footer-disclaimer {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   margin-top: 12px;
   text-align: center;
 }
@@ -922,17 +1018,19 @@ onMounted(() => {
   gap: 6px;
   padding: 10px 16px;
   margin-left: 52px;
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 0 16px 16px 16px;
   width: fit-content;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  box-shadow: var(--shadow-sm);
   margin-bottom: 24px; /* Space it out */
+  border: 1px solid var(--border-light);
+  border-left: none;
 }
 
 .dot {
   width: 6px;
   height: 6px;
-  background: #999;
+  background: var(--text-tertiary);
   border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out both;
 }
@@ -959,17 +1057,17 @@ onMounted(() => {
   cursor: pointer;
   border-radius: 6px;
   transition: background 0.2s;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .kb-option:hover {
-  background: #f5f7fa;
-  color: #333;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .kb-option.selected {
-  background: #e6f0ff;
-  color: #0256d0;
+  background: var(--primary-50);
+  color: var(--primary-700);
   font-weight: 500;
 }
 
@@ -981,11 +1079,11 @@ onMounted(() => {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: var(--border-light);
   border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--border-medium);
 }
 
 @media (max-width: 768px) {

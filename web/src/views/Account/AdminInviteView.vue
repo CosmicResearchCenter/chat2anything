@@ -193,10 +193,10 @@ const stats = ref({
 });
 
 const statistics = computed(() => [
-  { label: '总邀请码', value: stats.value.total_codes, icon: 'Ticket', color: '#1677ff' },
-  { label: '活跃邀请码', value: stats.value.active_codes, icon: 'CircleCheck', color: '#52c41a' },
-  { label: '已使用', value: stats.value.used_codes, icon: 'User', color: '#722ed1' },
-  { label: '已过期', value: stats.value.expired_codes, icon: 'Clock', color: '#f5222d' }
+  { label: '总邀请码', value: stats.value.total_codes, icon: 'Ticket', color: 'var(--primary-500)' },
+  { label: '活跃邀请码', value: stats.value.active_codes, icon: 'CircleCheck', color: 'var(--success-500)' },
+  { label: '已使用', value: stats.value.used_codes, icon: 'User', color: 'var(--purple-500)' },
+  { label: '已过期', value: stats.value.expired_codes, icon: 'Clock', color: 'var(--danger-500)' }
 ]);
 
 // 生成邀请码表单
@@ -452,41 +452,50 @@ onMounted(() => {
 
 <style scoped>
 .invite-container {
-  padding: 24px;
-  min-height: calc(100vh - 48px);
-  background: #f5f7fa;
+  width: 100%;
+  min-height: 100%;
+  background: var(--bg-main);
+  padding: 0;
 }
 
 .page-header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
+  padding: 24px 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(10px);
 }
 
 .page-title {
   display: flex;
   align-items: center;
   gap: 12px;
-  
+
   h2 {
     font-size: 24px;
-    font-weight: 500;
+    font-weight: var(--font-weight-semibold);
     margin: 0;
-    color: #1a1a1a;
+    color: var(--text-primary);
   }
-  
+
   .el-icon {
     font-size: 24px;
-    color: #409eff;
+    color: var(--primary-600);
   }
 }
 
 .card-container {
-  background: white;
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .stats-cards {
@@ -497,21 +506,27 @@ onMounted(() => {
 }
 
 .stat-card {
-  background: white;
-  border-radius: 8px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
   padding: 20px;
   display: flex;
   align-items: center;
   gap: 16px;
-  border: 1px solid #eee;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
   border-left: 4px solid var(--stat-color);
+  transition: all var(--duration-normal) ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-icon {
   background: color-mix(in srgb, var(--stat-color) 15%, transparent);
   color: var(--stat-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   width: 48px;
   height: 48px;
   display: flex;
@@ -525,21 +540,24 @@ onMounted(() => {
 
 .stat-value {
   font-size: 1.8rem;
-  font-weight: 600;
-  color: #333;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .action-bar {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  border: 1px solid var(--border-light);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 16px;
 }
@@ -551,7 +569,11 @@ onMounted(() => {
 }
 
 .table-container {
-  margin-bottom: 24px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
 }
 
 .code-cell {
@@ -563,42 +585,108 @@ onMounted(() => {
 .code-text {
   font-family: 'Monaco', 'Consolas', monospace;
   font-size: 13px;
-  background: #f5f5f5;
+  background: var(--bg-main);
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   flex: 1;
   word-break: break-all;
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
 }
 
 .pagination {
   display: flex;
   justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .form-tip {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   margin-top: 4px;
 }
 
+/* 深色模式适配 */
+[data-theme="dark"] .stat-card {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .code-text {
+  background: var(--bg-elevated);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .action-bar,
+[data-theme="dark"] .table-container {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+/* 响应式设计 */
 @media (max-width: 768px) {
-  .invite-container {
-    padding: 16px;
-  }
-  
   .page-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
+    padding: 20px 24px;
   }
-  
+
+  .card-container {
+    padding: 20px;
+  }
+
   .action-bar {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
+  .search-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .search-actions .el-select,
+  .search-actions .el-button {
+    flex: 1;
+  }
+
   .stats-cards {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .action-bar {
+    padding: 12px 16px;
+  }
+
+  .table-container {
+    padding: 12px;
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .stat-card,
+  .action-bar,
+  .table-container {
+    border-width: 2px;
+  }
+}
+
+/* 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card {
+    transition: none !important;
   }
 }
 </style>

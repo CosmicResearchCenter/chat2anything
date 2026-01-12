@@ -57,8 +57,8 @@
                 <el-switch 
                   :model-value="scope.row.is_default_chat" 
                   disabled 
-                  active-color="#13ce66" 
-                  inactive-color="#dcdfe6"
+                  active-color="var(--success-500)"
+                  inactive-color="var(--border-medium)"
                 />
               </template>
             </el-table-column>
@@ -67,8 +67,8 @@
                 <el-switch 
                   :model-value="scope.row.is_default_splitter" 
                   disabled 
-                  active-color="#13ce66" 
-                  inactive-color="#dcdfe6"
+                  active-color="var(--success-500)"
+                  inactive-color="var(--border-medium)"
                 />
               </template>
             </el-table-column>
@@ -160,8 +160,8 @@
                 <el-switch 
                   :model-value="scope.row.is_default" 
                   disabled 
-                  active-color="#13ce66" 
-                  inactive-color="#dcdfe6"
+                  active-color="var(--success-500)"
+                  inactive-color="var(--border-medium)"
                 />
               </template>
             </el-table-column>
@@ -243,8 +243,8 @@
                 <el-switch 
                   :model-value="scope.row.is_default" 
                   disabled 
-                  active-color="#13ce66" 
-                  inactive-color="#dcdfe6"
+                  active-color="var(--success-500)"
+                  inactive-color="var(--border-medium)"
                 />
               </template>
             </el-table-column>
@@ -941,7 +941,7 @@ onMounted(() => {
 .model-container {
   padding: 24px;
   min-height: calc(100vh - 48px);
-  background: #f5f7fa;
+  background: var(--bg-main);
 }
 
 .page-header {
@@ -962,22 +962,84 @@ onMounted(() => {
   font-size: 22px;
   font-weight: 500;
   margin: 0;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .page-title .el-icon {
   font-size: 22px;
-  color: #409eff;
+  color: var(--primary-500);
 }
 
 .main-card {
   margin-bottom: 24px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
 }
 
 .config-tabs {
   margin-top: 8px;
 }
+
+/* Element Plus 组件样式覆盖 */
+.config-form :deep(.el-form-item__label) {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.config-form :deep(.el-input__wrapper),
+.config-form :deep(.el-textarea__inner) {
+  background: var(--bg-main);
+  border-color: var(--border-light);
+}
+
+.config-form :deep(.el-input__wrapper:hover),
+.config-form :deep(.el-textarea__inner:hover) {
+  border-color: var(--primary-400);
+}
+
+.config-form :deep(.el-input__wrapper.is-focus),
+.config-form :deep(.el-textarea__inner:focus) {
+  border-color: var(--primary-600);
+  box-shadow: 0 0 0 2px var(--primary-100);
+}
+
+.config-form :deep(.el-radio__inner) {
+  background-color: var(--bg-main);
+  border-color: var(--border-medium);
+}
+
+.config-form :deep(.el-radio__inner:hover) {
+  border-color: var(--primary-500);
+}
+
+.config-form :deep(.el-radio.is-checked .el-radio__inner) {
+  background-color: var(--primary-600);
+  border-color: var(--primary-600);
+}
+
+.config-form :deep(.el-radio.is-checked .el-radio__label) {
+  color: var(--primary-600);
+}
+
+.config-form :deep(.el-switch) {
+  --el-switch-on-color: var(--success-500);
+  --el-switch-off-color: var(--border-medium);
+}
+
+/* 暗色模式适配 */
+[data-theme="dark"] .config-form :deep(.el-input__wrapper),
+[data-theme="dark"] .config-form :deep(.el-textarea__inner) {
+  background: var(--bg-elevated);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .config-form :deep(.el-radio__inner) {
+  background-color: var(--bg-elevated);
+  border-color: var(--border-medium);
+}
+
 
 .tab-header {
   display: flex;
@@ -1033,7 +1095,7 @@ onMounted(() => {
 
 .warning-icon {
   font-size: 24px;
-  color: #f56c6c;
+  color: var(--danger-500);
 }
 
 .confirm-content {
@@ -1043,8 +1105,30 @@ onMounted(() => {
 
 .confirm-tip {
   font-size: 13px;
-  color: #909399;
+  color: var(--text-tertiary);
   margin-top: 8px;
+}
+
+/* 暗色模式适配 */
+[data-theme="dark"] .model-container {
+  background: var(--bg-main);
+}
+
+[data-theme="dark"] .page-title h2 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .main-card {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .warning-icon {
+  color: var(--danger-400);
+}
+
+[data-theme="dark"] .confirm-tip {
+  color: var(--text-secondary);
 }
 
 .empty-placeholder {

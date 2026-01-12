@@ -47,8 +47,9 @@ const router = createRouter({
     },
     {
       path:"/admin/models",
-      name:"admin_user",
-      component: () => import('../views/Account/AdminModelView.vue')
+      name:"AdminModels",
+      component: () => import('@/views/Account/AdminModelView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     },
     {
       path: '/manager',

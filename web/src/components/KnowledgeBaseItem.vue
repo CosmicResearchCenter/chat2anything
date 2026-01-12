@@ -41,7 +41,7 @@ export default defineComponent({
 });
 </script>
 
-<style>
+<style scoped>
 .kb-box, .kb-box-checked {
     transition: all 0.3s ease;
     cursor: pointer;
@@ -49,26 +49,26 @@ export default defineComponent({
 }
 
 .kb-box {
-    background-color: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-light);
 }
 
 .kb-box:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    background-color: #ffffff;
-    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-md);
+    background-color: var(--bg-hover);
+    border-color: var(--primary-300);
 }
 
 .kb-box-checked {
-    background: linear-gradient(135deg, #0245a3 0%, #0369e1 100%);
-    box-shadow: 0 8px 16px rgba(3, 105, 225, 0.2);
-    border: none;
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-500) 100%);
+    box-shadow: 0 8px 16px rgba(3, 105, 225, 0.25);
+    border: 1px solid var(--primary-400);
 }
 
 .kb-box-checked:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(3, 105, 225, 0.25);
+    box-shadow: 0 10px 20px rgba(3, 105, 225, 0.35);
 }
 
 .kb-content {
@@ -80,7 +80,7 @@ export default defineComponent({
 }
 
 .kb-icon {
-    color: #0245a3;
+    color: var(--primary-600);
     font-size: 16px;
 }
 
@@ -94,17 +94,57 @@ export default defineComponent({
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--text-primary);
 }
 
 .kb-box-checked .kb-name {
     color: #ffffff;
+    font-weight: 500;
 }
 
 .kb-check-icon {
     color: #ffffff;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.25);
     border-radius: 50%;
     padding: 3px;
     font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 暗色模式适配 */
+[data-theme="dark"] .kb-box {
+    background-color: var(--bg-card);
+    border-color: var(--border-light);
+}
+
+[data-theme="dark"] .kb-box:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--primary-400);
+}
+
+[data-theme="dark"] .kb-name {
+    color: var(--text-primary);
+}
+
+/* Element Plus Card 组件样式覆盖 */
+.el-card {
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border-light) !important;
+    background: var(--bg-card) !important;
+}
+
+.el-card:hover {
+    border-color: var(--primary-300) !important;
+}
+
+.kb-box-checked + .el-card {
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-500) 100%) !important;
+    border: none !important;
+}
+
+.el-card :deep(.el-card__body) {
+    padding: 12px 16px !important;
 }
 </style>

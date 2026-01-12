@@ -113,13 +113,22 @@ export default defineComponent({
 });
 </script>
 
-<style>
+<style scoped>
 .chatlog-title {
     position: relative;
     transition: all 0.3s ease;
     cursor: pointer;
     overflow: hidden;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    margin-bottom: 8px;
+}
+
+.chatlog-title:hover {
+    background: var(--bg-hover);
+    border-color: var(--primary-300);
+    transform: translateX(2px);
 }
 
 .chatlog-content {
@@ -129,7 +138,7 @@ export default defineComponent({
 }
 
 .chatlog-icon {
-    color: #0245a3;
+    color: var(--primary-600);
     font-size: 16px;
 }
 
@@ -139,6 +148,7 @@ export default defineComponent({
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 14px;
+    color: var(--text-primary);
 }
 
 .dropdown-container {
@@ -161,10 +171,12 @@ export default defineComponent({
     padding: 6px;
     border-radius: 50%;
     transition: all 0.3s ease;
+    color: var(--text-secondary);
 }
 
 .el-dropdown-link:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
 }
 
 .el-dropdown-menu :deep(.el-dropdown-item) {
@@ -172,17 +184,52 @@ export default defineComponent({
     align-items: center;
     gap: 5px;
     padding: 10px 15px;
+    color: var(--text-primary);
 }
 
 .delete-item {
-    color: #f56c6c;
+    color: var(--danger-500);
 }
 
 .el-dropdown-menu :deep(.el-dropdown-item:hover) {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--bg-hover);
+    color: var(--danger-600);
 }
 
 .el-dropdown-menu :deep(.el-dropdown-menu__item i) {
     margin-right: 5px;
+}
+
+/* 暗色模式适配 */
+[data-theme="dark"] .chatlog-title {
+    background: var(--bg-card);
+    border-color: var(--border-light);
+}
+
+[data-theme="dark"] .chatlog-title:hover {
+    background: var(--bg-hover);
+    border-color: var(--primary-500);
+}
+
+[data-theme="dark"] .el-dropdown-link {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .el-dropdown-link:hover {
+    background-color: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .el-dropdown-menu :deep(.el-dropdown-item) {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .delete-item {
+    color: var(--danger-400);
+}
+
+[data-theme="dark"] .el-dropdown-menu :deep(.el-dropdown-item:hover) {
+    background-color: var(--bg-hover);
+    color: var(--danger-500);
 }
 </style>

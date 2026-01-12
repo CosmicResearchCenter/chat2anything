@@ -25,7 +25,7 @@ export default defineComponent({
 });
 </script>
 
-<style>
+<style scoped>
 .msg-box {
   display: flex;
   gap: 16px;
@@ -39,7 +39,7 @@ export default defineComponent({
   height: 45px;
   border-radius: 50%;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border: 2px solid #fff;
+  border: 2px solid var(--bg-card);
   transition: all 0.3s ease;
 }
 
@@ -48,24 +48,24 @@ export default defineComponent({
 }
 
 .msg_user {
-  background: linear-gradient(135deg, #0245a3 0%, #0369e1 100%);
+  background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-500) 100%);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-radius: 18px 4px 18px 18px;
   padding: 16px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    0 4px 24px -1px rgba(3, 105, 225, 0.2),
-    0 2px 8px -1px rgba(3, 105, 225, 0.1);
+  border: 1px solid var(--primary-400);
+  box-shadow:
+    0 4px 24px -1px var(--shadow-primary-md),
+    0 2px 8px -1px var(--shadow-primary-sm);
   max-width: 80%;
   position: relative;
   transition: all 0.3s ease;
 }
 
 .msg_user:hover {
-  box-shadow: 
-    0 6px 30px -1px rgba(3, 105, 225, 0.25),
-    0 3px 10px -1px rgba(3, 105, 225, 0.15);
+  box-shadow:
+    0 6px 30px -1px var(--shadow-primary-lg),
+    0 3px 10px -1px var(--shadow-primary-md);
   transform: translateY(-2px);
 }
 
@@ -76,10 +76,10 @@ export default defineComponent({
   top: 20px;
   width: 16px;
   height: 16px;
-  background: linear-gradient(135deg, #0245a3 0%, #0369e1 100%);
+  background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-500) 100%);
   transform: rotate(45deg);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--primary-400);
+  border-right: 1px solid var(--primary-400);
 }
 
 .msg_user :deep(*) {
@@ -138,5 +138,31 @@ export default defineComponent({
 
 .msg_user :deep(a:hover) {
   text-decoration-color: rgba(255, 255, 255, 1);
+}
+
+/* 暗色模式适配 */
+[data-theme="dark"] .avatar {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: var(--bg-elevated);
+}
+
+[data-theme="dark"] .msg_user {
+  background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-600) 100%);
+  border-color: var(--primary-500);
+}
+
+[data-theme="dark"] .msg_user::before {
+  background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-600) 100%);
+  border-color: var(--primary-500);
+}
+
+[data-theme="dark"] .msg_user :deep(code) {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .msg_user :deep(pre) {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.15);
 }
 </style>
