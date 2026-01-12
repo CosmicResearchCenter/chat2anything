@@ -1,151 +1,332 @@
 <template>
-  <el-container class="chat-container">
-    <!-- Left Sidebar for Chat List -->
-    <el-aside class="chat-aside glass-panel">
-      <div class="aside-header">
-        <h3>会话列表</h3>
-        <el-button type="primary" @click="createConversation" class="create-button">
-          <el-icon><Plus /></el-icon>新建对话
-        </el-button>
-      </div>
-      <div class="chat-list custom-scrollbar">
-        <ChatLogItem class="chat-log-item" :class="{ active: currentConversationId === item.conversation_id }"
-          v-for="item in conversionsList" :key="item.conversation_id" :title="String(item.conversationName)"
-          :conversation_id="item.conversation_id" @click="handleItemClick(item.conversation_id)"
-          @updateTitle="updateConversationTitle(item.conversation_id, $event)" @refreshList="getConversionsList" />
-      </div>
-    </el-aside>
+  <div class="chat-layout">
+    <!-- Left Sidebar Component -->
+    <ChatList 
+      :is-collapsed="isSidebarCollapsed"
+      :loading="loadingList"
+      :list="conversionsList"
+      :current-id="currentConversationId"
+      @create="createConversation"
+      @select="handleItemClick"
+      @delete="deleteConversation"
+      @toggle="toggleSidebar"
+    />
 
-    <!-- Main Chat Interface -->
-    <el-main class="chat-main glass-panel">
-      <div class="chat-header">
-        <h2>{{ getCurrentConversationTitle() }}</h2>
-        <span class="chat-subtitle">{{ getSelectedKnowledgeBaseName() }}</span>
-      </div>
-      
-      <div class="chat-content custom-scrollbar" ref="chatContent">
-        <div class="welcome-message" v-if="!conversionMessage.length">
-          <div class="welcome-icon">🤖</div>
-          <h3>欢迎使用智能助手</h3>
-          <p>开始新的对话，探索AI的无限可能</p>
+    <!-- Main Chat Area -->
+    <main class="main-area">
+      <!-- Top Navigation Bar -->
+      <header class="chat-navbar glass-effect">
+         <div class="nav-left">
+           <div class="mobile-menu-btn" @click="toggleSidebar">
+              <el-icon><Fold /></el-icon>
+           </div>
+           <h2 class="current-title">{{ getCurrentConversationTitle() }}</h2>
+         </div>
+         
+         <div class="nav-right">
+            <!-- Knowledge Base Selector -->
+            <el-popover
+              placement="bottom-end"
+              title="切换知识库"
+              :width="300"
+              trigger="click"
+            >
+              <template #reference>
+                <el-button class="kb-select-btn" :class="{ 'active': choosedKnowledgeBaseId }">
+                  <el-icon><Collection /></el-icon>
+                  <span class="kb-name">{{ getSelectedKnowledgeBaseName() || '选择知识库' }}</span>
+                  <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+              </template>
+              
+              <div class="kb-list custom-scrollbar">
+                 <div 
+                    v-for="kb in knowledgebaseList" 
+                    :key="kb.id" 
+                    class="kb-option"
+                    :class="{ 'selected': choosedKnowledgeBaseId === kb.id }"
+                    @click="switchKnowledgeBase(kb.id)"
+                 >
+                    <el-icon><Monitor /></el-icon>
+                    <span>{{ kb.knowledgeBaseName }}</span>
+                 </div>
+              </div>
+            </el-popover>
+         </div>
+      </header>
+
+      <!-- Chat Stream -->
+      <div class="messages-wrapper custom-scrollbar" ref="chatContent">
+        <!-- Empty State -->
+        <div v-if="!conversionMessage.length" class="empty-state">
+           <div class="brand-logo">
+             <div class="logo-circle">
+                <span class="logo-emoji">🤖</span>
+             </div>
+           </div>
+           <h3>我可以为您做些什么？</h3>
+           <div class="suggestion-grid">
+              <div class="suggestion-card" @click="fillInput('帮我制定一个Python学习计划')">
+                 <div class="card-icon">📚</div>
+                 <div class="card-text">制定 Python 学习计划</div>
+              </div>
+              <div class="suggestion-card" @click="fillInput('解释一下什么是 RAG 技术')">
+                 <div class="card-icon">🧠</div>
+                 <div class="card-text">解释 RAG 技术原理</div>
+              </div>
+              <div class="suggestion-card" @click="fillInput('写一个 Vue3 的计数器组件')">
+                 <div class="card-icon">💻</div>
+                 <div class="card-text">生成 Vue3 代码示例</div>
+              </div>
+           </div>
         </div>
-        <div class="message-container" v-for="(item, index) in conversionMessage" :key="index">
-          <div class="message-item-user">
-            <MessageItem_User :message="String(item.query)" />
-          </div>
-          <div class="message-item-assistant">
-            <MessageItem_Assistant :message="String(item.answer)" :retrievedDocs=item.retriever_docs />
-          </div>
+
+        <!-- Message List -->
+        <div v-else class="message-list">
+           <div v-for="(item, index) in conversionMessage" :key="index" class="message-row">
+              <!-- User Message -->
+              <div class="message-group user">
+                 <div class="message-bubble user-bubble">
+                    <v-md-preview :text="String(item.query)" />
+                 </div>
+              </div>
+
+              <!-- Assistant Message -->
+              <div class="message-group assistant">
+                 <div class="avatar-container">
+                    <div class="ai-avatar">AI</div>
+                 </div>
+                 <div class="assistant-content">
+                    <div class="message-bubble assistant-bubble">
+                        <!-- Thinking Process -->
+                        <div v-if="parseMessageContent(String(item.answer)).hasThink" class="think-section">
+                           <div class="think-header" @click="toggleThink(item)">
+                              <el-icon><Cpu /></el-icon>
+                              <span>思考过程</span>
+                              <el-icon class="toggle-icon" :class="{ 'is-active': item.showThink }"><ArrowDown /></el-icon>
+                           </div>
+                           <v-md-preview 
+                              v-show="item.showThink" 
+                              :text="parseMessageContent(String(item.answer)).think" 
+                              class="think-content" 
+                           />
+                        </div>
+
+                        <!-- Answer Content -->
+                        <v-md-preview :text="parseMessageContent(String(item.answer)).answer" />
+                    </div>
+                    
+                    <!-- Retrieved Docs (Sources) -->
+                    <div v-if="item.retriever_docs && item.retriever_docs.length > 0" class="sources-section">
+                        <div class="sources-header" @click="toggleDocs(item)">
+                           <el-icon><Document /></el-icon>
+                           <span>参考文档 ({{ item.retriever_docs.length }})</span>
+                           <el-icon class="toggle-icon" :class="{ 'is-active': item.showDocs }"><ArrowDown /></el-icon>
+                        </div>
+                        <div v-show="item.showDocs" class="sources-content">
+                           <el-collapse accordion>
+                              <el-collapse-item 
+                                 v-for="(doc, idx) in item.retriever_docs" 
+                                 :key="idx" 
+                                 :title="doc.knowledge_doc_name" 
+                                 :name="idx"
+                              >
+                                 <div class="doc-text">
+                                    <v-md-preview :text="doc.content" />
+                                 </div>
+                              </el-collapse-item>
+                           </el-collapse>
+                        </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
+        
+        <!-- Loading Indicator -->
+        <div v-if="loading" class="typing-indicator">
+           <div class="dot"></div>
+           <div class="dot"></div>
+           <div class="dot"></div>
         </div>
       </div>
 
       <!-- Input Area -->
-      <div class="input-area glass-input">
-        <el-input v-model="message" class="input-box" autosize type="textarea" placeholder="输入您的问题..."
-          @keyup.enter.exact="sendMessage" @keyup.ctrl.enter="handleMultilineInput" />
-        <div class="action-buttons">
-          <el-tooltip content="发送消息" placement="top">
-            <el-button type="primary" :disabled="loading || !message.trim()" @click="sendMessage" class="send-button">
-              <el-icon><Position /></el-icon>
-            </el-button>
-          </el-tooltip>
-        </div>
-        <div class="loading-container" v-if="loading">
-          <div class="thinking-dots">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <span class="loading-text">AI思考中</span>
-        </div>
+      <div class="input-section">
+         <div class="input-wrapper glass-effect">
+            <el-input
+              v-model="message"
+              class="main-input"
+              type="textarea"
+              :autosize="{ minRows: 1, maxRows: 8 }"
+              placeholder="发送消息给 AI..."
+              @keydown.enter.exact.prevent="sendMessage"
+              @keydown.ctrl.enter="handleMultilineInput"
+            />
+            <div class="input-actions">
+               <el-tooltip content="发送 (Enter)" placement="top">
+                  <el-button 
+                     type="primary" 
+                     class="send-btn" 
+                     :disabled="!message.trim() || loading" 
+                     @click="sendMessage"
+                     circle
+                  >
+                     <el-icon><Position /></el-icon>
+                  </el-button>
+               </el-tooltip>
+            </div>
+         </div>
+         <div class="footer-disclaimer">
+            AI 生成的内容可能包含错误，请自行核实。
+         </div>
       </div>
-    </el-main>
-
-    <!-- Right Sidebar for Knowledge Base -->
-    <el-aside class="chat-aside-right glass-panel">
-      <div class="aside-header">
-        <h3>知识库列表</h3>
-      </div>
-      <div class="knowledge-base-list custom-scrollbar">
-        <KnowledgeBaseItem v-for="item in knowledgebaseList" :key="item.id" class="knowledge-base-item"
-          :class="{ active: choosedKnowledgeBaseId === item.id }" :knowledgeBaseName="String(item.knowledgeBaseName)"
-          :knowledgeBaseId="String(item.id)" @click="switchKnowledgeBase(item.id)" />
-      </div>
-    </el-aside>
-  </el-container>
+    </main>
+  </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, nextTick, computed } from 'vue';
-import MessageItem_User from "@/components/MessageItem_User.vue";
-import MessageItem_Assistant from "@/components/MessageItem_Assistant.vue";
-import ChatLogItem from '@/components/ChatLogItem.vue';
-import KnowledgeBaseItem from '@/components/KnowledgeBaseItem.vue';
-import { getRequest, postRequest } from '@/utils/http';
-import { ElMessageBox, ElMessage } from 'element-plus';
-import { Plus, Position } from '@element-plus/icons-vue';
+import { ref, onMounted, nextTick } from 'vue';
+import { getRequest, postRequest, deleteRequest } from '@/utils/http';
+import { ElMessage } from 'element-plus';
+import ChatList from '@/components/ChatList.vue';
+import { 
+  Position, 
+  Fold, 
+  Collection,
+  Monitor,
+  ArrowDown,
+  Cpu,
+  Document
+} from '@element-plus/icons-vue';
 
+// State
+const isSidebarCollapsed = ref(false);
+const loadingList = ref(false);
 const conversionsList = ref<any>([]);
 let conversionMessage = ref<any>([]);
 const knowledgebaseList = ref<any>([]);
 const choosedKnowledgeBaseId = ref<any>('');
 const message = ref<any>('');
 const currentConversationId = ref<any>('');
-let chatContent = ref<any>(null);
+const chatContent = ref<HTMLElement | null>(null);
 const loading = ref<boolean>(false);
 
-// 获取当前会话标题
+// Helper to parse message content (Thinking vs Answer)
+function parseMessageContent(message: string) {
+  let hasThink = false;
+  let think = '';
+  let answer = message;
+
+  // Check for THINKING: ... ANSWER: ... format
+  if (message.includes('THINKING:')) {
+      const answerMatch = message.match(/ANSWER:([\s\S]*)/);
+      const thinkMatch = message.match(/THINKING:([\s\S]*?)(?=ANSWER:|$)/);
+      
+      if (thinkMatch) {
+         hasThink = true;
+         think = thinkMatch[1].trim();
+      }
+      if (answerMatch) {
+         answer = answerMatch[1].trim();
+      } else if (hasThink) {
+         // If we have thinking but no ANSWER: tag yet, user might still be streaming thinking or finished thinking
+         // We might want to clear answer if it's all thinking
+         // But usually streaming appends.
+         // Let's assume everything after THINKING is think until ANSWER appears
+         answer = ''; 
+      }
+  } 
+  // Check for <think>...</think> format
+  else if (message.includes('<think>')) {
+      hasThink = true;
+      const thinkMatch = message.match(/<think>([\s\S]*?)<\/think>/);
+      if (thinkMatch) {
+          think = thinkMatch[1].trim();
+          answer = message.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      } else {
+          // Open tag but no close tag? Streaming...
+          const openMatch = message.match(/<think>([\s\S]*)/);
+          if (openMatch) {
+             think = openMatch[1].trim();
+             answer = ''; // All is thinking
+          }
+      }
+  }
+
+  return { hasThink, think, answer };
+}
+
+// Helper to toggle thinking visibility
+function toggleThink(item: any) {
+  item.showThink = !item.showThink;
+}
+
+// Helper to toggle docs visibility
+function toggleDocs(item: any) {
+  item.showDocs = !item.showDocs;
+}
+
+// Core Logic
+function toggleSidebar() {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value;
+}
+
+function fillInput(text: string) {
+  message.value = text;
+  // Optional: auto focus input
+}
+
 function getCurrentConversationTitle() {
   if (!currentConversationId.value) return '新对话';
-  const conversation = conversionsList.value.find((item: { conversation_id: string; }) => 
+  const conversation = conversionsList.value.find((item: any) => 
     item.conversation_id === currentConversationId.value
   );
-  return conversation ? conversation.conversationName : '对话';
+  return conversation ? conversation.conversationName : '新对话';
 }
 
-// 获取选中的知识库名称
 function getSelectedKnowledgeBaseName() {
   if (!choosedKnowledgeBaseId.value) return '';
-  const knowledgeBase = knowledgebaseList.value.find((item: { id: string; }) => 
+  const knowledgeBase = knowledgebaseList.value.find((item: any) => 
     item.id === choosedKnowledgeBaseId.value
   );
-  return knowledgeBase ? `使用知识库: ${knowledgeBase.knowledgeBaseName}` : '';
+  return knowledgeBase ? knowledgeBase.knowledgeBaseName : '';
 }
 
-// 处理多行输入
 function handleMultilineInput(e: KeyboardEvent) {
-  e.preventDefault(); // 阻止默认的回车发送
-  message.value += '\n'; // 添加换行符
+  message.value += '\n';
 }
 
 async function sendMessage() {
-  if (!message.value.trim()) return;
+  if (!message.value.trim() || loading.value) return;
+  
   let tempValue = message.value;
+  message.value = ''; // clear immediately
 
   // 检查是否有当前选中的对话，如果没有则创建新对话
   if (!currentConversationId.value) {
     await createConversation();
   }
 
-  loading.value = true; // 显示加载状态
+  loading.value = true;
   let chatItemUser: any = {
     id: Date.now(),
     query: tempValue,
     answer: '',
   };
-  message.value = '';
+  
   conversionMessage.value.push(chatItemUser);
   scrollToBottom();
-  let message_length = conversionMessage.value.length;
   
   try {
     const baseURL = import.meta.env.VITE_APP_BASE_URL;
-    const token = localStorage.getItem('token') // 获取 token
+    const token = localStorage.getItem('token');
+    
     const response: any = await fetch(baseURL + '/v1/api/mark/chat/chat-message', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : '' // 添加 token 到请求头
+        'Authorization': token ? `Bearer ${token}` : ''
       },
       body: JSON.stringify({
         "conversation_id": currentConversationId.value.toString(),
@@ -157,69 +338,83 @@ async function sendMessage() {
 
     if (response.status === 401) {
       ElMessage.error('认证失败，请重新登录');
+      loading.value = false;
       return;
     }
 
-    if (!response.ok) throw new Error('网络错误，无法发送消息');
+    if (!response.ok) throw new Error('网络错误');
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let resultText = '';
+    const lastMsgIndex = conversionMessage.value.length - 1;
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
       resultText += decoder.decode(value, { stream: true });
-      conversionMessage.value[message_length - 1].answer = resultText;
+      conversionMessage.value[lastMsgIndex].answer = resultText;
       scrollToBottom();
     }
 
   } catch (error: any) {
     console.error(error);
-    message.value = tempValue;
+    message.value = tempValue; // restore if failed
     ElMessage.error('发送失败，请重试');
-
   } finally {
-    loading.value = false; // 隐藏加载状态
+    loading.value = false;
     reGetConversionsList();
-    handleItemClick(currentConversationId.value);
   }
 }
 
 function scrollToBottom() {
   nextTick(() => {
     if (chatContent.value) {
-      chatContent.value.scrollTop = chatContent.value.scrollHeight;
+      const el = chatContent.value;
+      el.scrollTo({
+         top: el.scrollHeight,
+         behavior: 'smooth'
+      });
     }
   });
 }
 
 async function getConversionsList() {
+  loadingList.value = true;
+  try {
+    const baseURL = import.meta.env.VITE_APP_BASE_URL;
+    const data = await getRequest<any>(baseURL + '/v1/api/mark/chat/chat-message/mark');
+    conversionsList.value = data.data.reverse();
+
+    if (conversionsList.value.length > 0 && !currentConversationId.value) {
+      const latestConversationId = conversionsList.value[0].conversation_id;
+      handleItemClick(latestConversationId);
+    }
+  } finally {
+    loadingList.value = false;
+  }
+}
+
+async function reGetConversionsList() {
   const baseURL = import.meta.env.VITE_APP_BASE_URL;
   const data = await getRequest<any>(baseURL + '/v1/api/mark/chat/chat-message/mark');
   conversionsList.value = data.data.reverse();
+}
 
-  if (conversionsList.value.length > 0) {
-    const latestConversationId = conversionsList.value[0].conversation_id;
-    handleItemClick(latestConversationId);
-  }
-}
-async function reGetConversionsList() {
-  const baseURL = import.meta.env.VITE_APP_BASE_URL;
-  const data = await getRequest<any>(baseURL + '/v1/api/mark/chat/chat-message/ai');
-  conversionsList.value = data.data.reverse();
-}
 async function handleItemClick(conversation_id: string) {
+  if (currentConversationId.value === conversation_id && conversionMessage.value.length > 0) return;
+  
   currentConversationId.value = conversation_id;
   const baseURL = import.meta.env.VITE_APP_BASE_URL;
-  // 加载当前对话的历史消息
+  
   const data = await getRequest<any>(baseURL+'/v1/api/mark/chat/chat-history/' + conversation_id);
-  conversionMessage.value = data.data;
+  conversionMessage.value = data.data || [];
 
-  // 设置为当前对话关联的知识库 ID
-  let dataLength = data.data.length;
-  choosedKnowledgeBaseId.value = data.data[dataLength - 1]?.current_knowledge_baseid || '';
+  const lastMsg = data.data[data.data.length - 1];
+  if (lastMsg) {
+    choosedKnowledgeBaseId.value = lastMsg.current_knowledge_baseid || '';
+  }
 
   scrollToBottom();
 }
@@ -232,18 +427,17 @@ async function getKnowledgeBaseList() {
 
 async function switchKnowledgeBase(knowledgeBaseId: string) {
   choosedKnowledgeBaseId.value = knowledgeBaseId;
+  const kbName = getSelectedKnowledgeBaseName();
+  ElMessage.success(`已切换至: ${kbName}`);
+  
   if (!currentConversationId.value) return;
+  
   const baseURL = import.meta.env.VITE_APP_BASE_URL;
-  const response: any = await postRequest<any>(baseURL+'/v1/api/mark/chat/knowledge_base', {
+  await postRequest<any>(baseURL+'/v1/api/mark/chat/knowledge_base', {
     "user_id": "mark",
     "conversation_id": currentConversationId.value.toString(),
     "knowledge_base_id": knowledgeBaseId
   });
-
-  if (response.code === 200) {
-    ElMessage.info('切换知识库成功！');
-    // await handleItemClick(currentConversationId.value);
-  }
 }
 
 async function createConversation() {
@@ -255,405 +449,550 @@ async function createConversation() {
     "username": user_id
   });
   
-  // 设置当前对话ID
   currentConversationId.value = data.data.conversation_id;
   
-  // 更新对话列表并选中新创建的对话
   await getConversionsList();
-  await handleItemClick(data.data.conversation_id);
-  
-  return data.data.conversation_id;
+  conversionMessage.value = []; 
 }
 
-function updateConversationTitle(conversationId: string, newTitle: string) {
-  const conversation = conversionsList.value.find((item: { conversation_id: string; }) => item.conversation_id === conversationId);
-  if (conversation) {
-    conversation.conversationName = newTitle;
+async function deleteConversation(conversationId: string) {
+  try {
+    const baseURL = import.meta.env.VITE_APP_BASE_URL;
+    const user_id = "mark"; // Keeping consistent with other hardcoded user_id usage
+    
+    // API endpoint per backend spec: /conversation/{user_id}/{conversation_id}
+    await deleteRequest<any>(`${baseURL}/v1/api/mark/chat/conversation/${user_id}/${conversationId}`);
+    
+    ElMessage.success('对话已删除');
+    
+    // Refresh list
+    await getConversionsList();
+    
+    // If deleted current conversation, reset state
+    if (currentConversationId.value === conversationId) {
+       currentConversationId.value = '';
+       conversionMessage.value = [];
+       // If list not empty, select first available
+       if (conversionsList.value.length > 0) {
+          handleItemClick(conversionsList.value[0].conversation_id);
+       }
+    }
+  } catch (error) {
+    console.error('Failed to delete conversation:', error);
+    ElMessage.error('删除失败，请重试');
   }
 }
 
 onMounted(() => {
   getConversionsList();
-  scrollToBottom();
   getKnowledgeBaseList();
 });
 </script>
 
 <style scoped>
-.chat-container {
+/* Reset & Layout */
+.chat-layout {
+  display: flex;
   height: 100%;
   width: 100%;
-  gap: 15px;
-}
-
-.glass-panel {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+  background: #ffffff;
+  /* position: absolute; */ /* Removed absolute positioning to prevent overlap with App navbar */
+  /* top: 0; */
+  /* left: 0; */
+  /* right: 0; */
+  /* bottom: 0; */
   overflow: hidden;
-  transition: all 0.3s ease;
+  position: relative; /* Ensure it stays within parent flow */
 }
 
-.chat-aside,
-.chat-aside-right {
-  width: 20% !important;
+/* Main Area */
+.main-area {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  margin: 12px;
-  transition: all 0.3s ease;
+  position: relative;
+  background: #f7f9fb;
 }
 
-.aside-header {
-  padding: 20px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+.chat-navbar {
+  height: 60px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 5;
 }
 
-.aside-header h3 {
-  margin: 0;
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobile-menu-btn {
+  display: none;
+  cursor: pointer;
+}
+
+.current-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
-}
-
-.chat-main {
-  width: 60% !important;
-  margin: 12px;
-  display: flex;
-  flex-direction: column;
-  transition: all 0.3s ease;
-  padding: 0 !important;
-}
-
-.chat-header {
-  padding: 20px 30px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  text-align: center;
-}
-
-.chat-header h2 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
   color: #333;
 }
 
-.chat-subtitle {
-  font-size: 12px;
-  color: #666;
-  margin-top: 5px;
-  display: block;
-}
-
-.create-button {
-  background: linear-gradient(135deg, #0245a3 0%, #0369e1 100%);
-  border-radius: 12px;
-  height: 40px;
-  border: none;
-  transition: all 0.3s ease;
-  font-weight: 500;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(3, 105, 225, 0.3);
+.kb-select-btn {
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 6px;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
+  font-size: 13px;
+  color: #555;
+  transition: all 0.2s;
+  cursor: pointer;
 }
 
-.create-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(3, 105, 225, 0.5);
+.kb-select-btn:hover {
+  background: #f9f9f9;
+  border-color: rgba(0,0,0,0.15);
+  color: #333;
 }
 
-.chat-content {
+.kb-select-btn.active {
+   background: #e6f0ff;
+   border-color: #3a7afe;
+   color: #0256d0;
+}
+
+/* Messages */
+.messages-wrapper {
   flex: 1;
   overflow-y: auto;
-  padding: 30px;
-  position: relative;
-}
-
-.welcome-message {
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #666;
+  align-items: center; /* Center content horizontally */
+}
+
+.messages-wrapper > * {
+  width: 100%;
+  max-width: 800px;
+}
+
+/* Welcome Screen */
+.empty-state {
+  margin-top: 10vh;
   text-align: center;
-  padding: 20px;
-  animation: fadeIn 0.5s ease-in-out;
-}
-
-.welcome-icon {
-  font-size: 50px;
-  margin-bottom: 20px;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.message-container {
   display: flex;
   flex-direction: column;
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-.message-item-user {
-  align-self: flex-end;
-  max-width: 80%;
-  margin: 10px 0;
-  transform-origin: right bottom;
-  animation: popIn 0.3s ease-in-out;
-}
-
-.message-item-assistant {
-  align-self: flex-start;
-  max-width: 90%;
-  margin: 10px 0;
-  transform-origin: left bottom;
-  animation: popIn 0.3s ease-in-out;
-}
-
-@keyframes popIn {
-  0% { opacity: 0; transform: scale(0.95); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-.glass-input {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  padding: 20px;
-  display: flex;
-  gap: 12px;
-  align-items: flex-end;
-  position: relative;
-}
-
-.input-area {
-  padding: 20px 30px;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.input-box {
-  flex: 1;
-}
-
-.input-box :deep(.el-textarea__inner) {
-  border-radius: 16px;
-  min-height: 60px !important;
-  max-height: 150px;
-  resize: none;
-  padding: 16px;
-  font-size: 14px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.95);
-}
-
-.input-box :deep(.el-textarea__inner:focus) {
-  box-shadow: 0 4px 16px rgba(3, 105, 225, 0.15);
-  border-color: #8fbaf3;
-}
-
-.action-buttons {
-  display: flex;
   align-items: center;
 }
 
-.send-button {
-  width: 45px;
-  height: 45px;
+.logo-circle {
+  width: 80px;
+  height: 80px;
+  background: white;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
   border-radius: 50%;
-  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0245a3 0%, #0369e1 100%);
-  box-shadow: 0 4px 12px rgba(3, 105, 225, 0.3);
-  transition: all 0.3s ease;
+  margin-bottom: 24px;
 }
 
-.send-button:hover {
-  transform: translateY(-2px) rotate(5deg);
-  box-shadow: 0 6px 20px rgba(3, 105, 225, 0.5);
+.logo-emoji {
+  font-size: 40px;
 }
 
-.send-button:disabled {
-  background: #cccccc;
-  box-shadow: none;
-  transform: none;
+.empty-state h3 {
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 40px;
 }
 
-.loading-container {
-  position: absolute;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.7);
+.suggestion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 700px;
+}
+
+.suggestion-card {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.suggestion-card:hover {
+  border-color: #3a7afe;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(58, 122, 254, 0.1);
+}
+
+.card-icon {
+  font-size: 24px;
+}
+
+.card-text {
+  font-size: 15px;
+  color: #333;
+  font-weight: 500;
+}
+
+/* Message Bubbles */
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-bottom: 40px;
+}
+
+.message-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.message-group {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+.message-group.user {
+  justify-content: flex-end;
+}
+
+.message-group.assistant {
+  justify-content: flex-start;
+}
+
+.user-bubble {
+  background: #3a7afe; /* Primary Blue for User */
   color: white;
-  padding: 8px 16px;
-  border-radius: 20px;
+  padding: 12px 18px;
+  border-radius: 18px 18px 2px 18px; /* Classic bubble shape */
+  max-width: 85%;
+  font-size: 15px;
+  line-height: 1.6;
+  box-shadow: 0 2px 6px rgba(58, 122, 254, 0.2);
+}
+
+/* Override child text colors if needed */
+.user-bubble :deep(p) {
+  margin: 0;
+}
+
+.assistant-bubble {
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.6;
+  background: transparent;
+  width: 100%;
+}
+
+.assistant-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0; /* Important for flex child to shrink */
+}
+
+/* User Message Styles Override */
+.user-bubble :deep(.v-md-editor-preview) {
+  padding: 0;
+  color: white;
+  background: transparent;
+}
+.user-bubble :deep(.github-markdown-body) {
+  padding: 0;
+  color: white;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+}
+.user-bubble :deep(p) {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* Assistant Message Styles Override */
+.assistant-bubble :deep(.v-md-editor-preview) {
+  padding: 0 8px;
+  background: transparent;
+}
+.assistant-bubble :deep(.github-markdown-body) {
+  padding: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  color: #333;
+}
+
+/* Think Section */
+.think-section {
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: #f0f4ff;
+  border: 1px solid rgba(58, 122, 254, 0.1);
+  overflow: hidden;
+}
+
+.think-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #3a7afe;
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(58, 122, 254, 0.05);
+  transition: background 0.2s;
+}
+
+.think-header:hover {
+  background: rgba(58, 122, 254, 0.1);
+}
+
+.think-content {
+  padding: 12px;
+  background: rgba(255,255,255,0.5);
+  font-size: 13px;
+  color: #666;
+}
+
+.think-content :deep(.github-markdown-body) {
+  font-family: 'Consolas', 'Monaco', monospace;
+  color: #666;
+  background: transparent;
+}
+
+/* Sources Section */
+.sources-section {
+  margin-left: 8px;
+  max-width: 600px;
+}
+
+.sources-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color 0.2s;
+}
+
+.sources-header:hover {
+  color: #3a7afe;
+}
+
+.sources-content {
+  margin-top: 8px;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.toggle-icon {
+  margin-left: auto;
+  transition: transform 0.2s;
+  font-size: 12px;
+}
+
+.toggle-icon.is-active {
+  transform: rotate(180deg);
+}
+
+/* Doc Content */
+.doc-text {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.doc-text :deep(.github-markdown-body) {
+  padding: 0;
+  font-size: 13px;
+  background: transparent;
+}
+
+.ai-avatar {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #0245a3 0%, #0369e1 100%);
+  border-radius: 8px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 13px;
+  flex-shrink: 0;
+  margin-top: 0;
+  box-shadow: 0 4px 10px rgba(3, 105, 225, 0.2);
+}
+
+/* Input Area */
+.input-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px 24px 24px;
+  background: linear-gradient(to bottom, rgba(247,249,251,0), #f7f9fb 30%);
+}
+
+.input-wrapper {
+  width: 100%;
+  max-width: 800px;
+  position: relative;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.08); /* Lighter border */
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.input-wrapper:focus-within {
+  border-color: #3a7afe;
+  box-shadow: 0 4px 24px rgba(58, 122, 254, 0.12);
+  transform: translateY(-2px);
+}
+
+.main-input :deep(.el-textarea__inner) {
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 16px 60px 16px 16px !important;
+  resize: none;
+  font-family: inherit;
+  font-size: 15px;
+  color: #333;
+}
+
+.input-actions {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+}
+
+.send-btn {
+  width: 36px;
+  height: 36px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.footer-disclaimer {
+  font-size: 12px;
+  color: #999;
+  margin-top: 12px;
+  text-align: center;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  margin-left: 52px;
+  background: #fff;
+  border-radius: 0 16px 16px 16px;
+  width: fit-content;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  margin-bottom: 24px; /* Space it out */
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  background: #999;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+/* KB List Popover Content */
+.kb-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.kb-option {
   display: flex;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  animation: fadeIn 0.3s ease-in-out;
-  z-index: 10;
-}
-
-.loading-text {
-  font-size: 14px;
-}
-
-.thinking-dots {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.thinking-dots span {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: white;
-  animation: dotPulse 1.5s infinite;
-}
-
-.thinking-dots span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.thinking-dots span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes dotPulse {
-  0%, 60%, 100% { transform: scale(1); opacity: 1; }
-  30% { transform: scale(1.5); opacity: 0.7; }
-}
-
-.chat-log-item {
-  padding: 12px 16px;
-  margin: 8px 10px;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(0, 0, 0, 0.03);
-}
-
-.chat-log-item:hover {
-  background: rgba(255, 255, 255, 0.9);
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.chat-log-item.active {
-  background: linear-gradient(135deg, #0245a3 0%, #0369e1 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(3, 105, 225, 0.2);
-}
-
-.knowledge-base-item {
-  margin: 8px 10px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  padding: 10px 12px;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: 6px;
+  transition: background 0.2s;
+  color: #555;
 }
 
-.knowledge-base-item:hover {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+.kb-option:hover {
+  background: #f5f7fa;
+  color: #333;
 }
 
-.knowledge-base-item.active {
-  background: linear-gradient(135deg, #0245a3 0%, #0369e1 100%);
-  color: white;
-  box-shadow: 0 6px 16px rgba(3, 105, 225, 0.2);
+.kb-option.selected {
+  background: #e6f0ff;
+  color: #0256d0;
+  font-weight: 500;
 }
 
-/* 自定义滚动条 */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  overflow-y: scroll;
-  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05);
-}
-
+/* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 3px;
+  background: transparent;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
-/* 在小屏幕下的响应式设计 */
-@media screen and (max-width: 992px) {
-  .chat-aside, .chat-aside-right {
-    width: 30% !important;
-  }
-  
-  .chat-main {
-    width: 40% !important;
-  }
-}
-
-@media screen and (max-width: 768px) {
-  .chat-container {
-    flex-direction: column;
-  }
-  
-  .chat-aside, .chat-aside-right {
-    width: calc(100% - 24px) !important;
-    margin: 12px;
-    height: auto;
-    max-height: 250px;
-  }
-  
-  .chat-main {
-    width: calc(100% - 24px) !important;
-    margin: 0 12px;
-    flex: 1;
-  }
-  
-  .input-area {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-  
-  .action-buttons {
-    justify-content: flex-end;
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: block;
+    padding: 8px;
+    margin-right: 8px;
   }
 }
 </style>
