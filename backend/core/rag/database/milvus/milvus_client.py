@@ -1,5 +1,6 @@
 from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType,IndexType
 from pymilvus import SearchResult,Hits,Hit
+from pymilvus.exceptions import MilvusException
 import numpy as np
 from config.config_info import settings
 
@@ -116,6 +117,15 @@ class MilvusCollectionManager:
         if self.collection is None:
             raise ValueError("No collection is loaded or created")
 
+        try:
+            self.collection.load()
+        except MilvusException as e:
+            if e.code == 700:  # index not found
+                print(f"Index not found for collection {knowledgeBaseID}. Creating index...")
+                self.create_index(knowledgeBaseID)
+            else:
+                raise e
+        
         # 将字符串值用引号包裹
         expr = f'knowledge_doc_id == "{knowledge_doc_id}"'
         self.collection.delete(expr=expr)
