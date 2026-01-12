@@ -1,0 +1,26 @@
+# 前端开发环境 Dockerfile
+
+FROM node:18-alpine
+
+# 设置工作目录
+WORKDIR /app
+
+# 设置镜像源
+ARG NPM_REGISTRY=https://registry.npmmirror.com
+ENV NPM_REGISTRY=${NPM_REGISTRY}
+
+# 复制 package 文件
+COPY package*.json ./
+
+# 安装依赖
+RUN npm config set registry ${NPM_REGISTRY} && \
+    npm install
+
+# 复制源代码 (通过卷挂载，这里只是为了备份)
+COPY . .
+
+# 暴露开发服务器端口
+EXPOSE 3000
+
+# 开发环境通过 docker-compose 指定 command
+CMD ["tail", "-f", "/dev/null"]

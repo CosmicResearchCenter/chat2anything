@@ -1,0 +1,55 @@
+# 环境变量文件 (不要提交敏感信息)
+.env
+.env.dev
+.env.prod
+.env.local
+.env.*.local
+
+# 数据卷目录
+mysql_data/
+es_data/
+milvus_etcd/
+milvus_minio/
+milvus_data/
+mysql_dev_data/
+es_dev_data/
+milvus_dev_data/
+
+# 备份目录
+backup/
+backups/
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+tmp/
+*.tmp
+*.temp
+
+# SSL 证书 (不要提交私钥)
+ssl/*.key
+ssl/*.pem
+ssl/*.crt
+ssl/private/
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 测试数据
+test_data/
+sample_data/
+
+# 编辑器备份
+*~
+*.bak
+*.orig

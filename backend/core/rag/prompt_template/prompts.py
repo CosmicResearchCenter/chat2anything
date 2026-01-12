@@ -32,7 +32,7 @@ Today's date is {{today_date}}. The current time is {{current_time}}.
 
 INSTRUCTIONS = """
 - Task: Answer the question "{{question}}" strictly based on the reference information provided between <DOCUMENTS> and </DOCUMENTS>, following the steps and format outlined below.
-
+- The response should be in the same language as the question.
 ---
 
 ### Answering Steps:

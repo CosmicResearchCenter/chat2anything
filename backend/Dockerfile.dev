@@ -1,0 +1,39 @@
+# 开发环境 Dockerfile
+# 支持热重载和调试
+
+FROM python:3.12-bullseye
+
+# 设置工作目录
+WORKDIR /app
+
+# 设置镜像源
+ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ENV PIP_INDEX_URL=${PIP_INDEX_URL}
+
+# 更新系统包并安装基础依赖
+RUN echo "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free" > /etc/apt/sources.list && \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb http://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y libgl1-mesa-glx libglib2.0-0 curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# 复制 requirements.txt
+COPY requirements.txt .
+
+# 安装 Python 依赖
+RUN pip install --no-cache-dir -r requirements.txt -i ${PIP_INDEX_URL}
+
+# 安装开发工具
+RUN pip install debugpy uvicorn[standard] -i ${PIP_INDEX_URL}
+
+# 复制项目文件 (通过卷挂载，这里只是为了备份)
+COPY . .
+
+# 暴露端口
+EXPOSE 9988 5678
+
+# 开发环境使用 uvicorn 的 reload 模式
+# 通过 docker-compose 指定 command
+CMD ["tail", "-f", "/dev/null"]

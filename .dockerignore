@@ -1,0 +1,65 @@
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 临时文件
+tmp/
+*.tmp
+*.temp
+
+# 日志
+*.log
+logs/
+
+# 文档 (除了 README.md)
+*.md
+!README.md
+docs/
+
+# 环境变量
+.env
+.env.*
+!.env.example
+
+# Docker 相关
+docker/mysql_data/
+docker/es_data/
+docker/milvus_*/
+docker/backup/
+
+# 项目特定
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+venv/
+env/
+
+# 测试
+tests/
+test_*
+.coverage
+htmlcov/
+
+# 编辑器备份
+*~
+*.bak
+*.orig
+*.rej
+.*.swp
