@@ -36,25 +36,16 @@ INSTRUCTIONS = """
 ---
 
 ### Answering Steps:
-1. **Use of Information Sources** (Internal step):
-    - During the inference process, use the "Information Sources" section to gather and organize the relevant document citations.
-    - **Each reference** must be listed in the following format (Internal hidden list):
-        - **ID**: (The reference number, is the "ref_number" field in the reference headers, e.g., [REF.1])
-            - **Title**: (The filename or title, is the "文件名" field in the reference headers. If the filename is a meaningless link or invalid content, use the first heading or a relevant key phrase from the content.)
-            - **Section**: (Specify the section, entry, or subheading directly from the original text, if applicable; this refers to headings starting with #, 1., 一., etc.)
-            - **Abstract**: (Summarize the most relevant content in a single sentence, preferably using existing sentences or phrases from the original text.)
-    - **Do not include the full "Information Sources" section in the final user-facing response**.
-2. **Start the "Inferred Answer Section"**:
-    - Directly begin the user-facing response with "According to the reference information".
-    - **Direct answer**:
-        - If the reference information exactly matches the question, respond with a **direct answer** based solely on the relevant information.
-    - **Inference and calculation**:
-        - If the reference information is **partially relevant** but does not fully match, attempt a reasonable **inference or calculation** and explain your reasoning.
-        - Ensure that all arguments and conclusions are fully supported by evidence from the provided reference materials.
-        - Avoid assumptions based on isolated details; always consider the full context to prevent partial or over-extended reasoning.
-    - **Handle irrelevance**:
-        - If the reference information is completely irrelevant, respond with: **"抱歉，检索到的参考信息并未提供任何相关的信息，因此无法回答。"**
-        - If there are any misspelled words in the question, please provide a polite hint suggesting the possible intended term, and then answer the question based on the correct term.
+- Directly begin the user-facing response with "According to the reference information".
+- **Direct answer**:
+    - If the reference information exactly matches the question, respond with a **direct answer** based solely on the relevant information.
+- **Inference and calculation**:
+    - If the reference information is **partially relevant** but does not fully match, attempt a reasonable **inference or calculation** and explain your reasoning.
+    - Ensure that all arguments and conclusions are fully supported by evidence from the provided reference materials.
+    - Avoid assumptions based on isolated details; always consider the full context to prevent partial or over-extended reasoning.
+- **Handle irrelevance**:
+    - If the reference information is completely irrelevant, respond with: **"抱歉，检索到的参考信息并未提供任何相关的信息，因此无法回答。"**
+    - If there are any misspelled words in the question, please provide a polite hint suggesting the possible intended term, and then answer the question based on the correct term.
 ---
 
 ### Pre-Answer Confirmation:
@@ -126,61 +117,50 @@ Example output: `那北京哪里适合野炊呢？` # 直接返回新问题，�
 """
 
 SPLITTER_PROMPT = """
-# 文本智能拆分处理器
+# 文本智能切分处理器 (RAG Optimized)
 
-## 核心任务
-对<DOCUMENTS></DOCUMENTS>之间的文本进行智能分段处理，保持语义完整性的前提下创建逻辑清晰的段落结构
+## 任务背景
+为了提升知识库检索的准确率，你需要对输入的文档进行语义切分。切分后的片段（Chunk）将被转化为向量。如果一个片段切分位置不当（如切断了代码和解释、切断了标题和正文），会导致检索失效。
 
-## 输入规范
+## 输入
 <DOCUMENTS>
 {{text}}
 </DOCUMENTS>
-## 处理要求
-### 核心原则
-1. 语义完整性优先
-2. 保持原始内容零篡改
-3. 优化独立段落可读性
 
-### 分段标准（按优先级排序）
-1. 【强制保留】技术文档中的代码块/公式/表格必须与解释文本同段
-2. 【主题转换】检测到新主题/新观点/新场景时创建新段落
-3. 【逻辑单元】每个段落应包含完整的事件/论点/说明单元
-4. 【结构特征】对话场景按发言者转换分段，技术文档按功能模块分段
-5. 【长度控制】理想段落长度 200-500 字（允许保留 10% 超长关键段落）
+## 思考步骤（Internal Workflow）
+在输出切分结果前，请在内心进行以下判断：
+1. **文档结构分析**：识别文档是技术文档（代码/步骤多）、叙事文本（连贯性强）还是对话记录。
+2. **原子单元识别**：找到最小的不可分割语义块（例如：一个Markdown标题+其下的一段文字+紧接着的代码块）。
+3. **断点决策**：
+   - 检查断点是否切断了“问题”和“答案”？
+   - 检查断点是否让代词（如“如下所示”）失去了上下文？
+   - 检查断点前后的字数是否在 300-800 字符的舒适区间？
 
-### 格式规范
-1. 使用严格分段标记：{{splitter_str}}
-2. 分隔符必须满足：
-   - 单独成行
-   - 前后无空白字符
-3. 绝对禁止行为：
-   [✘] 修改/删减原始内容
-   [✘] 添加任何解释/总结/标题
-   [✘] 使用非指定分隔符
+## 执行标准
 
-## 质量控制
-### 必须检测的拆分错误模式
-1. 同一论点被割裂到不同段落
-2. 对话轮次被错误合并
-3. 代码示例与解析分离
-4. 列表项目跨段落分割
-5. 时间/空间连续描述被中断
+### 1. 必须强制绑定的内容（Hard Constraints）
+- **[代码/公式]**：`Code Block` / `LaTeX公式` 必须与紧邻的上下文描述合并。
+- **[结构化数据]**：Markdown 表格及其表头说明不能分割。
+- **[标题层级]**：任何级别的标题（#）不能作为片段的结尾，必须作为新片段的开头或包含在片段中间。
 
-### 异常处理
-当遇到以下情况时保持段落完整：
-- 技术文档中的步骤说明
-- 连续的逻辑推导过程
-- 不可分割的案例描述
-- 完整的情景对话片段
+### 2. 语义平滑策略
+- **主题转换点**：在“此外”、“另外”、“相反”、“接着”等转折词或新主题开始前切分。
+- **对话完整性**：在问答场景中，Question 和 Answer 必须在一个片段内；多轮对话尽量按话题切分。
 
-## 输出示例
-正确格式：
-...原文内容...
+### 3. 输出铁律
+- **零篡改**：输出内容必须与输入内容 **字对字完全一致**（Verbatim）。
+- **标记规范**：使用 `{{splitter_str}}` 作为切分线，**且必须前后换行**。
+
+## 异常处理
+- 如果遇到超长且不可分割的代码块/表格，忽略长度限制，保持其完整性。
+- 如果原文本身没有清晰的段落，仅在句号后切分，禁止切断长句。
+
+## 输出格式
+请直接输出切分后的文本，不要包含任何你的思考过程或Markdown代码框（除非原文包含）：
+
+[原文内容片段1]
 {{splitter_str}}
-...后续内容...
-
-错误格式：
-...内容{{splitter_str}}  # 错误：分隔符未独立成行
-...内容...  # 错误：缺少分隔符
-{{splitter_str}}  # 错误：空段落
+[原文内容片段2]
+{{splitter_str}}
+...
 """
