@@ -1,6 +1,6 @@
 import os
 import uuid
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from config.config_info import settings
 import jwt
@@ -18,22 +18,36 @@ from core.database.mysql_client import MysqlClient
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+COOKIE_NAME = "access_token"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def generate_unique_filename(original_filename):
-    # 获取文件扩展名
     extension = os.path.splitext(original_filename)[1]
-    # 生成唯一的UUID
     unique_id = uuid.uuid4()
-    # 组合唯一标识符和扩展名
     unique_filename = f"{unique_id}{extension}"
     return unique_filename
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_token_from_request(request: Request):
+    token = request.cookies.get(COOKIE_NAME)
+    if token:
+        return token
+    
+    authorization = request.headers.get("Authorization")
+    if authorization and authorization.startswith("Bearer "):
+        return authorization[7:]
+    
+    return None
+
+async def get_current_user(request: Request):
     credentials_exception = HTTPException(
         status_code=401, detail="Could not validate credentials", headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    token = await get_token_from_request(request)
+    if not token:
+        raise credentials_exception
+    
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -47,13 +61,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     if user is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not Login")
 
-
     return username
 
-async def get_is_admin(token: str = Depends(oauth2_scheme)):
+async def get_is_admin(request: Request):
     credentials_exception = HTTPException(
         status_code=401, detail="Could not validate credentials", headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    token = await get_token_from_request(request)
+    if not token:
+        raise credentials_exception
+    
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -61,6 +79,7 @@ async def get_is_admin(token: str = Depends(oauth2_scheme)):
             raise credentials_exception
     except jwt.PyJWTError:
         raise credentials_exception
+    
     mysql_client = MysqlClient()
     user = mysql_client.db.query(UserInfo).filter(UserInfo.username == username).first()
 
