@@ -1,7 +1,8 @@
 """
 用户管理部分的路由
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
+from fastapi.responses import JSONResponse
 import hashlib
 import jwt
 import datetime
@@ -19,6 +20,7 @@ SECRET_KEY = settings.SECRET_KEY
 ADMIN_KEY = settings.ADMIN_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
+COOKIE_NAME = "access_token"
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -42,15 +44,31 @@ def create_access_token(data: dict, expires_delta: datetime.timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-@router.post("/login", response_model=LoginResponse)
-async def login(loginRequest: LoginRequest):
+def set_token_cookie(response: Response, token: str, expires_minutes: int):
+    expires = datetime.datetime.utcnow() + datetime.timedelta(minutes=expires_minutes)
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        expires=expires,
+        path="/"
+    )
+
+def clear_token_cookie(response: Response):
+    response.delete_cookie(
+        key=COOKIE_NAME,
+        path="/"
+    )
+
+@router.post("/login")
+async def login(loginRequest: LoginRequest, response: Response):
     mysql_client = MysqlClient()
     try:
         username = loginRequest.username
         password = loginRequest.password
 
-        # Workaround: Explicitly select needed columns to avoid 'status' column error
-        # Ideally, ensure the UserInfo model and database schema match.
         user_data = mysql_client.db.query(
             UserInfo.username,
             UserInfo.password,
@@ -64,22 +82,22 @@ async def login(loginRequest: LoginRequest):
 
         if not verify_password(password, hashed_password):
             raise HTTPException(status_code=400, detail="Incorrect username or password")
-        # Use the fetched delete_sign value
         if delete_sign == True:
             raise HTTPException(status_code=400, detail="Account disabled")
 
         access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        # Use the fetched username for the token
         access_token = create_access_token(
             data={"sub": fetched_username}, expires_delta=access_token_expires
         )
+
+        set_token_cookie(response, access_token, ACCESS_TOKEN_EXPIRE_MINUTES)
 
         return LoginResponse(code=200, data=AccessToken(access_token=access_token,token_type="bearer"), message="Login Successful")
     finally:
         mysql_client.db.close()
 
-@router.post("/signup", response_model=SignUpResponse)
-def signup(signupRequest: SignUpRequest):
+@router.post("/signup")
+def signup(signupRequest: SignUpRequest, response: Response):
     mysql_client = MysqlClient()
     try:
         username = signupRequest.username
@@ -102,12 +120,14 @@ def signup(signupRequest: SignUpRequest):
             data={"sub": new_user.username}, expires_delta=access_token_expires
         )
 
+        set_token_cookie(response, access_token, ACCESS_TOKEN_EXPIRE_MINUTES)
+
         return SignUpResponse(code=200, data=AccessToken(access_token=access_token,token_type="bearer"), message="Sign Up Successful")
     finally:
         mysql_client.db.close()
 
-@router.post("/signup_admin", response_model=SignUpResponse)
-def signup(signupRequest: SignUpAdminRequest):
+@router.post("/signup_admin")
+def signup(signupRequest: SignUpAdminRequest, response: Response):
     mysql_client = MysqlClient()
     try:
         username = signupRequest.username
@@ -133,9 +153,16 @@ def signup(signupRequest: SignUpAdminRequest):
             data={"sub": new_user.username}, expires_delta=access_token_expires
         )
 
+        set_token_cookie(response, access_token, ACCESS_TOKEN_EXPIRE_MINUTES)
+
         return SignUpResponse(code=200, data=AccessToken(access_token=access_token,token_type="bearer"), message="Sign Up Successful")
     finally:
         mysql_client.db.close()
+
+@router.post("/logout")
+def logout(response: Response):
+    clear_token_cookie(response)
+    return {"code": 200, "message": "Logout successful"}
 
 # 获取当前用户信息
 @router.get("/me")

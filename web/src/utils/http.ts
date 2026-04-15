@@ -1,26 +1,47 @@
 // http.ts
 
-// 添加token相关的工具函数
+// 移除 localStorage 相关的 token 存储函数，改用 httpOnly cookie
+// 保留空函数以保持向后兼容，但实际上不再使用 localStorage
 export const saveToken = (token: string) => {
-    localStorage.setItem('token', token);
+    // 不再使用 localStorage 存储 token，改为依赖 httpOnly cookie
+    console.warn('saveToken is deprecated, using httpOnly cookie instead');
 };
 
 export const getToken = () => {
-    return localStorage.getItem('token');
+    // 不再从 localStorage 获取 token，改为依赖 httpOnly cookie
+    console.warn('getToken is deprecated, using httpOnly cookie instead');
+    return null;
 };
 
 export const removeToken = () => {
-    localStorage.removeItem('token');
+    // 不再从 localStorage 移除 token，改为调用后端 logout 接口
+    console.warn('removeToken is deprecated, use logout() instead');
 };
 
-// 新增：获取认证请求头
+// 新增：登出方法
+export async function logout() {
+    try {
+        const baseURL = import.meta.env.VITE_APP_BASE_URL || 'http://127.0.0.1:9988';
+        const response = await fetch(`${baseURL}/v1/api/mark/account/logout`, {
+            method: 'POST',
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            throw new Error('登出失败');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Logout error:', error);
+        throw error;
+    }
+}
+
+// 新增：获取认证请求头 - 现在返回空对象，因为 token 由 cookie 自动携带
 const getAuthHeaders = (customHeaders?: any) => {
-    const token = getToken();
-    const defaultHeaders = {
-        'Authorization': token ? `Bearer ${token}` : '',
-        // 'Content-Type': 'application/json'
-    };
-    return customHeaders ? { ...defaultHeaders, ...customHeaders } : defaultHeaders;
+    // 不再需要手动添加 Authorization header，因为 token 由 cookie 自动携带
+    return customHeaders ? { ...customHeaders } : {};
 };
 
 export async function getRequest<T>(url: string): Promise<T | undefined> {
@@ -28,17 +49,18 @@ export async function getRequest<T>(url: string): Promise<T | undefined> {
         const headers = getAuthHeaders();
         const response = await fetch(url, {
             method: 'GET',
-            headers
+            headers,
+            credentials: 'include',
         });
 
         if (!response.ok) {
             if (response.status === 401) {
-                removeToken(); // token无效时清除
+                // 401 时不再需要手动清除 token，cookie 会在登出时清除
             }
             throw new Error(`GET request failed: ${response.statusText}`);
         }
 
-        return await response.json() as T; // assuming the response is JSON
+        return await response.json() as T;
     } catch (error) {
         console.error('GET request error:', error);
         return undefined;
@@ -56,11 +78,12 @@ export async function postRequest<T>(url: string, body: any, customHeaders?: any
             method: 'POST',
             headers,
             body: isFormData ? body : JSON.stringify(body),
+            credentials: 'include',
         });
 
         if (!response.ok) {
             if (response.status === 401) {
-                removeToken();
+                // 401 时不再需要手动清除 token
             }
             throw new Error(`POST request failed: ${response.statusText}`);
         }
@@ -82,22 +105,21 @@ export async function putRequest<T>(url: string, body: any, customHeaders?: any)
             method: 'PUT',
             headers,
             body: isFormData ? body : JSON.stringify(body),
+            credentials: 'include',
         });
 
         if (!response.ok) {
             if (response.status === 401) {
-                removeToken();
+                // 401 时不再需要手动清除 token
             }
             throw new Error(`PUT request failed: ${response.statusText}`);
         }
 
-        // 确保响应体为 JSON 格式再解析
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
             return await response.json() as T;
         }
 
-        // 如果不是 JSON 格式，返回空
         return undefined;
     } catch (error) {
         console.error('PUT request error:', error);
@@ -110,12 +132,13 @@ export async function deleteRequest<T>(url: string): Promise<T | undefined> {
         const headers = getAuthHeaders();
         const response = await fetch(url, {
             method: 'DELETE',
-            headers
+            headers,
+            credentials: 'include',
         });
 
         if (!response.ok) {
             if (response.status === 401) {
-                removeToken();
+                // 401 时不再需要手动清除 token
             }
             throw new Error(`DELETE request failed: ${response.statusText}`);
         }
@@ -137,7 +160,8 @@ export async function login(username: string, password: string) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password }),
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -145,8 +169,8 @@ export async function login(username: string, password: string) {
         }
 
         const result = await response.json();
-        if (result.code === 200 && result.data.access_token) {
-            saveToken(result.data.access_token);
+        if (result.code === 200) {
+            // 不再手动保存 token，依赖 httpOnly cookie
             return result;
         }
         
@@ -166,7 +190,8 @@ export async function signup(username: string, password: string) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password }),
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -174,8 +199,8 @@ export async function signup(username: string, password: string) {
         }
 
         const result = await response.json();
-        if (result.code === 200 && result.data.access_token) {
-            saveToken(result.data.access_token);
+        if (result.code === 200) {
+            // 不再手动保存 token，依赖 httpOnly cookie
             return result;
         }
         
@@ -195,7 +220,8 @@ export async function signupAdmin(username: string, password: string, adminKey: 
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ username, password, admin_key: adminKey })
+            body: JSON.stringify({ username, password, admin_key: adminKey }),
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -204,8 +230,8 @@ export async function signupAdmin(username: string, password: string, adminKey: 
         }
 
         const result = await response.json();
-        if (result.code === 200 && result.data.access_token) {
-            saveToken(result.data.access_token);
+        if (result.code === 200) {
+            // 不再手动保存 token，依赖 httpOnly cookie
             return result;
         }
         
